@@ -1,0 +1,9 @@
+[submodule "lib/owl"]
+	path = lib/owl
+	url = https://github.com/owl-project/owl
+[submodule "lib/stb"]
+	path = lib/stb
+	url = https://github.com/nothings/stb
+[submodule "lib/wxWidgets"]
+	path = lib/wxWidgets
+	url = https://github.com/wxWidgets/wxWidgets.git
