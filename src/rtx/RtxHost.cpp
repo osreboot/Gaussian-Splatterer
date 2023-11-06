@@ -1,4 +1,4 @@
-#define CAMERA_COS_FOVY 0.8f // wide = 0.9 | original = 0.66 | narrow = 0.5
+#define CAMERA_COS_FOVY 0.9f // wide = 0.9 | original = 0.66 | narrow = 0.5
 #define CAMERA_LOOK_UP vec3f{0.0f, 1.0f, 0.0f}
 
 #include <fstream>
@@ -14,7 +14,7 @@
 using namespace owl;
 using namespace std;
 
-RtxHost::RtxHost() {
+RtxHost::RtxHost(const owl::vec2i size) : size(size) {
     // Initialize OWL context so we can start loading resources
     context = owlContextCreate(nullptr, 1);
     OWLModule module = owlModuleCreate(context, RtxDevice_ptx);
@@ -52,8 +52,6 @@ RtxHost::RtxHost() {
 
     initialized = false;
     timer = 0.0f;
-
-    setSplatCameras();
 }
 
 static OWLTexture loadTexture(OWLContext context, const string& path) {
@@ -166,17 +164,21 @@ void RtxHost::setSplatModel(const string& pathModel, const string& pathTexture) 
     initialized = true;
 }
 
-void RtxHost::setSplatCameras() {
+void RtxHost::setSplatCameras(int count, float distance) {
     splatCameras.clear();
 
-    splatCameras.emplace_back(1.0f, 1.0f, 1.0f);
-    splatCameras.emplace_back(1.0f, 1.0f, -1.0f);
-    splatCameras.emplace_back(1.0f, -1.0f, 1.0f);
-    splatCameras.emplace_back(1.0f, -1.0f, -1.0f);
-    splatCameras.emplace_back(-1.0f, 1.0f, 1.0f);
-    splatCameras.emplace_back(-1.0f, 1.0f, -1.0f);
-    splatCameras.emplace_back(-1.0f, -1.0f, 1.0f);
-    splatCameras.emplace_back(-1.0f, -1.0f, -1.0f);
+    // Algorithm source for Fibonacci sphere placement: https://youtu.be/lctXaT9pxA0?si=xJQE1KXCH92s5tne&t=66
+    float goldenRatio = (1.0f + sqrtf(5.0f)) / 2.0f;
+    float angleStep = 2.0f * (float)M_PI * goldenRatio;
+    for(int i = 0; i < count; i++){
+        float t = (float)i / (float)count;
+        float angle1 = acosf(1.0f - 2.0f * t);
+        float angle2 = angleStep * (float)i;
+
+        splatCameras.emplace_back(sinf(angle1) * cosf(angle2) * distance,
+                                  sinf(angle1) * sinf(angle2) * distance,
+                                  cosf(angle1) * distance);
+    }
 
     owlRayGenSet1i(rayGen, "splatCamerasCount", (int)splatCameras.size());
 
@@ -184,24 +186,25 @@ void RtxHost::setSplatCameras() {
     owlRayGenSetBuffer(rayGen, "splatCameras", splatCamerasBuffer);
 }
 
-void RtxHost::update(float delta, int width, int height, uint64_t frameBuffer) {
+void RtxHost::update(float delta, uint64_t frameBuffer, float cameraDistance) {
     static const vec3f cameraTarget = {0.0f, 0.0f, 0.0f};
 
     timer += delta;
 
-    const vec3f cameraLocation = {cos(timer / 2.0f) * 8.0f, 3.0f, sin(timer / 2.0f) * 8.0f};
+    vec3f cameraLocation = {cos(timer / 2.0f), 0.4f, sin(timer / 2.0f)};
+    cameraLocation *= cameraDistance;
 
     if(initialized) {
         // Calculate camera parameters
         vec3f cameraDir = normalize(cameraTarget - cameraLocation);
-        float aspect = (float)width / (float)height;
+        float aspect = (float)size.x / (float)size.y;
         vec3f cameraDirRight = CAMERA_COS_FOVY * aspect * normalize(cross(cameraDir, CAMERA_LOOK_UP));
         vec3f cameraDirUp = CAMERA_COS_FOVY * normalize(cross(cameraDirRight, cameraDir));
         vec3f cameraOriginPixel = cameraDir - 0.5f * cameraDirRight - 0.5f * cameraDirUp;
 
         // Send camera parameters to the ray tracer
         owlRayGenSet1ul(rayGen, "frameBuffer", frameBuffer);
-        owlRayGenSet2i(rayGen, "size", width, height);
+        owlRayGenSet2i(rayGen, "size", size.x, size.y);
         owlRayGenSet3f(rayGen, "camera.location", (const owl3f&)cameraLocation);
         owlRayGenSet3f(rayGen, "camera.originPixel", (const owl3f&)cameraOriginPixel);
         owlRayGenSet3f(rayGen, "camera.dirRight", (const owl3f&)cameraDirRight);
@@ -209,6 +212,6 @@ void RtxHost::update(float delta, int width, int height, uint64_t frameBuffer) {
 
         // Run ray tracer
         owlBuildSBT(context);
-        owlRayGenLaunch2D(rayGen, width, height);
+        owlRayGenLaunch2D(rayGen, size.x, size.y);
     }
 }

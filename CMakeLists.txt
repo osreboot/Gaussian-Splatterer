@@ -5,7 +5,7 @@ set(CMAKE_CUDA_STANDARD 14)
 
 add_definitions(-DNDEBUG)
 
-add_executable(${PROJECT_NAME} ${SOURCES})
+add_executable(${PROJECT_NAME} WIN32 ${SOURCES})
 
 include_directories(lib src)
 
@@ -29,7 +29,7 @@ embed_ptx(
 set(wxBUILD_SHARED OFF)
 add_subdirectory(lib/wxWidgets)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw owl::owl ${PROJECT_NAME}-ptx wx::net wx::core wx::base)
+target_link_libraries(${PROJECT_NAME} PRIVATE owl::owl ${PROJECT_NAME}-ptx wx::net wx::core wx::base wx::gl)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
         CUDA_SEPARABLE_COMPILATION ON)
