@@ -16,10 +16,16 @@ private:
     wxSpinCtrl* spinCtrlCamerasCount;
     wxSpinCtrlDouble* spinCtrlCamerasDistance;
 
+    wxCheckBox* checkBoxPreviewCamera;
+    wxSpinCtrl* spinCtrlPreviewCamera;
+
 public:
     SplatPanelTools(wxWindow *parent);
 
     void onSpinCtrlCamerasCount(wxSpinEvent& event);
     void onSpinCtrlCamerasDistance(wxSpinDoubleEvent& event);
+
+    void SplatPanelTools::onCheckBoxPreviewCamera(wxCommandEvent& event);
+    void SplatPanelTools::onSpinCtrlPreviewCamera(wxSpinEvent& event);
 
 };

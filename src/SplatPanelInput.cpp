@@ -15,8 +15,8 @@ SplatPanelInput::SplatPanelInput(wxWindow *parent) : wxGLCanvas(parent) {
     OWL_CUDA_CHECK(cudaGraphicsGLRegisterImage(&textureCuda, textureFrameBuffer, GL_TEXTURE_2D, 0));
 
     rtx = new RtxHost({RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y});
-    rtx->setSplatModel(R"(C:\Users\Calvin\Desktop\Archives\Development\Resources\Gecko 3d model\Gecko_m1.obj)",
-                      R"(C:\Users\Calvin\Desktop\Archives\Development\Resources\Gecko 3d model\Files\Textures\Gecko Body Texture.BMP)");
+    rtx->load(R"(C:\Users\Calvin\Desktop\Archives\Development\Resources\Gecko 3d model\Gecko_m1.obj)",
+              R"(C:\Users\Calvin\Desktop\Archives\Development\Resources\Gecko 3d model\Files\Textures\Gecko Body Texture.BMP)");
 
     timeLastUpdate = chrono::high_resolution_clock::now();
 }
@@ -38,7 +38,8 @@ void SplatPanelInput::render() {
     glClear(GL_COLOR_BUFFER_BIT);
 
     SplatFrame* frame = dynamic_cast<SplatFrame*>(GetParent()->GetParent());
-    rtx->update(delta, (uint64_t)frameBuffer, *frame->truthCameras);
+    frame->truthCameras->update(delta);
+    rtx->render(delta, (uint64_t)frameBuffer, *frame->truthCameras);
 
     // Post-update
     OWL_CUDA_CHECK(cudaGraphicsMapResources(1, &textureCuda));

@@ -1,12 +1,8 @@
-#define CAMERA_COS_FOVY 0.9f // wide = 0.9 | original = 0.66 | narrow = 0.5
-#define CAMERA_LOOK_UP vec3f{0.0f, 1.0f, 0.0f}
-
 #include <fstream>
 #include <vector>
 
 #include <owl/owl.h>
 #include <stb/stb_image.h>
-#include <stb/stb_image_write.h>
 
 #include "RtxHost.h"
 #include "RtxDevice.cuh"
@@ -63,7 +59,7 @@ static OWLTexture loadTexture(OWLContext context, const string& path) {
     return texture;
 }
 
-void RtxHost::setSplatModel(const string& pathModel, const string& pathTexture) {
+void RtxHost::load(const string& pathModel, const string& pathTexture) {
     vector<vec3f> vertices;
     vector<vec3i> triangles;
     vector<vec2f> textureCoordsRefVec;
@@ -164,33 +160,29 @@ void RtxHost::setSplatModel(const string& pathModel, const string& pathTexture) 
     initialized = true;
 }
 
-void RtxHost::update(float delta, uint64_t frameBuffer, TruthCameras& cameras) {
-    static const vec3f cameraTarget = {0.0f, 0.0f, 0.0f};
+void RtxHost::render(float delta, uint64_t frameBuffer, TruthCameras& cameras) {
+    owlRayGenSet1i(rayGen, "splatCamerasCount", cameras.previewPerspective == -1 ? cameras.getCount() : 0);
 
     if (cameras.pollInputUpdate()) {
-        owlRayGenSet1i(rayGen, "splatCamerasCount", cameras.getCount());
-
         OWLBuffer splatCamerasBuffer = owlDeviceBufferCreate(context, OWL_FLOAT3, cameras.getCount(), cameras.locations.data());
         owlRayGenSetBuffer(rayGen, "splatCameras", splatCamerasBuffer);
     }
 
     timer += delta;
 
-    vec3f cameraLocation = {cos(timer / 2.0f), 0.4f, sin(timer / 2.0f)};
-    cameraLocation *= 1.5f;
-
     if(initialized) {
+        Camera camera = cameras.getActiveCamera();
+
         // Calculate camera parameters
-        vec3f cameraDir = normalize(cameraTarget - cameraLocation);
-        float aspect = (float)size.x / (float)size.y;
-        vec3f cameraDirRight = CAMERA_COS_FOVY * aspect * normalize(cross(cameraDir, CAMERA_LOOK_UP));
-        vec3f cameraDirUp = CAMERA_COS_FOVY * normalize(cross(cameraDirRight, cameraDir));
+        vec3f cameraDir = normalize(camera.target - camera.location);
+        vec3f cameraDirRight = cosf(camera.degFovX * (float)M_PI / 180.0f) * 2.0f * normalize(cross(cameraDir, {0.0f, 1.0f, 0.0f}));
+        vec3f cameraDirUp = cosf(camera.degFovY * (float)M_PI / 180.0f) * 2.0f * normalize(cross(cameraDirRight, cameraDir));
         vec3f cameraOriginPixel = cameraDir - 0.5f * cameraDirRight - 0.5f * cameraDirUp;
 
         // Send camera parameters to the ray tracer
         owlRayGenSet1ul(rayGen, "frameBuffer", frameBuffer);
         owlRayGenSet2i(rayGen, "size", size.x, size.y);
-        owlRayGenSet3f(rayGen, "camera.location", (const owl3f&)cameraLocation);
+        owlRayGenSet3f(rayGen, "camera.location", (const owl3f&)camera.location);
         owlRayGenSet3f(rayGen, "camera.originPixel", (const owl3f&)cameraOriginPixel);
         owlRayGenSet3f(rayGen, "camera.dirRight", (const owl3f&)cameraDirRight);
         owlRayGenSet3f(rayGen, "camera.dirUp", (const owl3f&)cameraDirUp);

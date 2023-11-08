@@ -23,8 +23,8 @@ private:
 public:
     RtxHost(const owl::vec2i size);
 
-    void setSplatModel(const std::string& pathModel, const std::string& pathTexture);
+    void load(const std::string& pathModel, const std::string& pathTexture);
 
-    void update(float delta, uint64_t frameBuffer, TruthCameras& cameras);
+    void render(float delta, uint64_t frameBuffer, TruthCameras& cameras);
 
 };
