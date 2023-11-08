@@ -7,6 +7,8 @@ target_sources(${PROJECT_NAME} PRIVATE
         SplatPanelTools.cpp
         SplatPanelTools.h
         StbImpl.cpp
+        TruthCameras.cpp
+        TruthCameras.h
         rtx/RtxHost.cpp
         rtx/RtxHost.h
         )

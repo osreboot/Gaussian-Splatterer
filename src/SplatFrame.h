@@ -2,6 +2,7 @@
 
 #include <wx/wx.h>
 
+#include "TruthCameras.h"
 #include "SplatPanelInput.h"
 #include "SplatPanelTools.h"
 
@@ -12,10 +13,13 @@ private:
     wxBoxSizer* sizer;
 
 public:
+    TruthCameras* truthCameras;
+
     SplatPanelInput* panelInput;
     SplatPanelTools* panelTools;
 
     SplatFrame();
+    ~SplatFrame() override;
 
 private:
 

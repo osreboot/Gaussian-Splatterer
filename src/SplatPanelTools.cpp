@@ -1,6 +1,9 @@
 #include "SplatPanelTools.h"
+#include "SplatFrame.h"
 
 SplatPanelTools::SplatPanelTools(wxWindow *parent) : wxPanel(parent) {
+    SplatFrame* frame = dynamic_cast<SplatFrame*>(GetParent()->GetParent());
+
     sizer = new wxBoxSizer(wxVERTICAL);
 
     sizerStaticInput = new wxStaticBoxSizer(wxVERTICAL, this, "Input Model Data");
@@ -13,7 +16,7 @@ SplatPanelTools::SplatPanelTools(wxWindow *parent) : wxPanel(parent) {
     sizerStaticTruth->Add(textCtrlCamerasCount, wxSizerFlags().Border(wxUP | wxLEFT | wxRIGHT));
     spinCtrlCamerasCount = new wxSpinCtrl(this);
     spinCtrlCamerasCount->SetRange(1, 128);
-    spinCtrlCamerasCount->SetValue(8);
+    spinCtrlCamerasCount->SetValue(frame->truthCameras->getCount());
     spinCtrlCamerasCount->Bind(wxEVT_COMMAND_SPINCTRL_UPDATED, &SplatPanelTools::onSpinCtrlCamerasCount, this);
     sizerStaticTruth->Add(spinCtrlCamerasCount, wxSizerFlags().Border(wxDOWN | wxLEFT | wxRIGHT));
 
@@ -23,7 +26,7 @@ SplatPanelTools::SplatPanelTools(wxWindow *parent) : wxPanel(parent) {
     spinCtrlCamerasDistance->SetRange(0.1, 10.0);
     spinCtrlCamerasDistance->SetDigits(2);
     spinCtrlCamerasDistance->SetIncrement(0.1);
-    spinCtrlCamerasDistance->SetValue(2.0);
+    spinCtrlCamerasDistance->SetValue(frame->truthCameras->getDistance());
     spinCtrlCamerasDistance->Bind(wxEVT_COMMAND_SPINCTRLDOUBLE_UPDATED, &SplatPanelTools::onSpinCtrlCamerasDistance, this);
     sizerStaticTruth->Add(spinCtrlCamerasDistance, wxSizerFlags().Border(wxDOWN | wxLEFT | wxRIGHT));
 
@@ -37,11 +40,11 @@ SplatPanelTools::SplatPanelTools(wxWindow *parent) : wxPanel(parent) {
 }
 
 void SplatPanelTools::onSpinCtrlCamerasCount(wxSpinEvent& event) {
-    splatCamerasUpdated = true;
-    splatCamerasCount = event.GetValue();
+    SplatFrame* frame = dynamic_cast<SplatFrame*>(GetParent()->GetParent());
+    frame->truthCameras->setCount(event.GetValue());
 }
 
 void SplatPanelTools::onSpinCtrlCamerasDistance(wxSpinDoubleEvent& event) {
-    splatCamerasUpdated = true;
-    splatCamerasDistance = (float)event.GetValue();
+    SplatFrame* frame = dynamic_cast<SplatFrame*>(GetParent()->GetParent());
+    frame->truthCameras->setDistance((float)event.GetValue());
 }
