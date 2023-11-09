@@ -15,6 +15,8 @@ private:
 
     wxSpinCtrl* spinCtrlCamerasCount;
     wxSpinCtrlDouble* spinCtrlCamerasDistance;
+    wxButton* buttonCamerasCapture;
+    wxStaticText* textCamerasStatus;
 
     wxCheckBox* checkBoxPreviewCamera;
     wxSpinCtrl* spinCtrlPreviewCamera;
@@ -24,6 +26,7 @@ public:
 
     void onSpinCtrlCamerasCount(wxSpinEvent& event);
     void onSpinCtrlCamerasDistance(wxSpinDoubleEvent& event);
+    void onButtonCamerasCapture(wxCommandEvent& event);
 
     void UiPanelTools::onCheckBoxPreviewCamera(wxCommandEvent& event);
     void UiPanelTools::onSpinCtrlPreviewCamera(wxSpinEvent& event);

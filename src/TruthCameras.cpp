@@ -14,15 +14,21 @@ void TruthCameras::update(float delta) {
     previewTimer += delta;
 }
 
-Camera TruthCameras::getActiveCamera() {
-    static const vec3f target = {0.0f, 0.0f, 0.0f};
-
+Camera TruthCameras::getPreviewCamera() {
     previewPerspective = min(count - 1, max(-1, previewPerspective));
 
-    if(previewPerspective == -1) {
+    return getCamera(previewPerspective);
+}
+
+Camera TruthCameras::getCamera(int index) const {
+    assert(index >= -1 && index < count);
+
+    static const vec3f target = {0.0f, 0.0f, 0.0f};
+
+    if(index == -1) {
         return {vec3f(cos(previewTimer / 2.0f), 0.4f, sin(previewTimer / 2.0f)) * vec3f(10.0f),
                 target, RENDER_FOV_X, RENDER_FOV_Y};
-    } else return {locations[previewPerspective], target, RENDER_FOV_X, RENDER_FOV_Y};
+    } else return {locations[index], target, RENDER_FOV_X, RENDER_FOV_Y};
 }
 
 void TruthCameras::setCount(int countArg) {
@@ -38,12 +44,6 @@ void TruthCameras::setDistance(float distanceArg) {
 bool TruthCameras::pollInputUpdate() {
     bool out = updatedInput;
     updatedInput = false;
-    return out;
-}
-
-bool TruthCameras::pollOutputUpdate() {
-    bool out = updatedOutput;
-    updatedOutput = false;
     return out;
 }
 
@@ -64,5 +64,4 @@ void TruthCameras::refresh() {
     }
 
     updatedInput = true;
-    updatedOutput = true;
 }

@@ -2,6 +2,7 @@
 
 #include "TruthCameras.h"
 #include "ModelSplats.h"
+#include "rtx/RtxHost.h"
 
 class Trainer {
 
@@ -15,6 +16,8 @@ private:
 public:
     ModelSplats* model;
 
+    std::vector<uint32_t*> truths;
+
     Trainer();
     Trainer(const Trainer&) = delete;
     Trainer& operator=(const Trainer&) = delete;
@@ -23,6 +26,8 @@ public:
 
     ~Trainer();
 
-    void render(uint32_t* frameBuffer, TruthCameras& cameras);
+    void render(uint32_t* frameBuffer, const Camera& camera);
+
+    void captureTruths(const TruthCameras& cameras, RtxHost& rtx);
 
 };

@@ -159,17 +159,15 @@ void RtxHost::load(const string& pathModel, const string& pathTexture) {
     initialized = true;
 }
 
-void RtxHost::render(uint32_t* frameBuffer, TruthCameras& cameras) {
-    owlRayGenSet1i(rayGen, "splatCamerasCount", cameras.previewPerspective == -1 ? cameras.getCount() : 0);
+void RtxHost::render(uint32_t* frameBuffer, const Camera& camera, TruthCameras* cameras) {
+    owlRayGenSet1i(rayGen, "splatCamerasCount", (cameras && cameras->previewPerspective == -1) ? cameras->getCount() : 0);
 
-    if (cameras.pollInputUpdate()) {
-        OWLBuffer splatCamerasBuffer = owlDeviceBufferCreate(context, OWL_FLOAT3, cameras.getCount(), cameras.locations.data());
+    if (cameras && cameras->pollInputUpdate()) {
+        OWLBuffer splatCamerasBuffer = owlDeviceBufferCreate(context, OWL_FLOAT3, cameras->getCount(), cameras->locations.data());
         owlRayGenSetBuffer(rayGen, "splatCameras", splatCamerasBuffer);
     }
 
     if(initialized) {
-        Camera camera = cameras.getActiveCamera();
-
         // Calculate camera parameters
         vec3f cameraDir = normalize(camera.target - camera.location);
         vec3f cameraDirRight = cos(camera.degFovX * 0.5f * (float)M_PI / 180.0f) * 2.0f * normalize(cross(cameraDir, {0.0f, 1.0f, 0.0f}));

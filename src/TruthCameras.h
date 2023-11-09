@@ -23,7 +23,6 @@ public:
 
 private:
     bool updatedInput = false;
-    bool updatedOutput = false;
 
     int count = 8;
     float distance = 2.0f;
@@ -38,7 +37,8 @@ public:
 
     void update(float delta);
 
-    Camera getActiveCamera();
+    Camera getPreviewCamera();
+    Camera getCamera(int index) const;
 
     void setCount(int count);
     void setDistance(float distance);
@@ -47,7 +47,6 @@ public:
     float getDistance() const { return distance; }
 
     bool pollInputUpdate();
-    bool pollOutputUpdate();
 
 private:
     void refresh();

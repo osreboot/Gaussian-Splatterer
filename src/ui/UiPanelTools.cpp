@@ -8,10 +8,14 @@ UiPanelTools::UiPanelTools(wxWindow *parent) : wxPanel(parent) {
 
     sizer = new wxBoxSizer(wxVERTICAL);
 
-    sizerStaticInput = new wxStaticBoxSizer(wxVERTICAL, this, "Input Model Data");
+
+
+    sizerStaticInput = new wxStaticBoxSizer(wxVERTICAL, this, "1. Input Model Data");
     sizer->Add(sizerStaticInput, wxSizerFlags().Expand().Border());
 
-    sizerStaticTruth = new wxStaticBoxSizer(wxVERTICAL, this, "Build Truth Data");
+
+
+    sizerStaticTruth = new wxStaticBoxSizer(wxVERTICAL, this, "2. Build Truth Data");
     sizer->Add(sizerStaticTruth, wxSizerFlags().Expand().Border());
 
     auto textCtrlCamerasCount = new wxStaticText(this, wxID_ANY, "Perspective Number");
@@ -34,10 +38,21 @@ UiPanelTools::UiPanelTools(wxWindow *parent) : wxPanel(parent) {
     spinCtrlCamerasDistance->Bind(wxEVT_COMMAND_SPINCTRLDOUBLE_UPDATED, &UiPanelTools::onSpinCtrlCamerasDistance, this);
     sizerStaticTruth->Add(spinCtrlCamerasDistance, wxSizerFlags().Border(wxDOWN | wxLEFT | wxRIGHT));
 
-    sizerStaticTrain = new wxStaticBoxSizer(wxVERTICAL, this, "Train Splats");
+    buttonCamerasCapture = new wxButton(this, wxID_ANY, "Capture");
+    buttonCamerasCapture->Bind(wxEVT_COMMAND_BUTTON_CLICKED, &UiPanelTools::onButtonCamerasCapture, this);
+    sizerStaticTruth->Add(buttonCamerasCapture, wxSizerFlags().Expand().Border());
+
+    textCamerasStatus = new wxStaticText(this, wxID_ANY, "[ no data ]");
+    sizerStaticTruth->Add(textCamerasStatus, wxSizerFlags().Border());
+
+
+
+    sizerStaticTrain = new wxStaticBoxSizer(wxVERTICAL, this, "3. Train Splats");
     sizer->Add(sizerStaticTrain, wxSizerFlags().Expand().Border());
 
-    sizerStaticOutput = new wxStaticBoxSizer(wxVERTICAL, this, "Visualize Splats");
+
+
+    sizerStaticOutput = new wxStaticBoxSizer(wxVERTICAL, this, "4. Visualize Splats");
     sizer->Add(sizerStaticOutput, wxSizerFlags().Expand().Border());
 
     checkBoxPreviewCamera = new wxCheckBox(this, wxID_ANY, "View Truth Perspective");
@@ -54,6 +69,8 @@ UiPanelTools::UiPanelTools(wxWindow *parent) : wxPanel(parent) {
     spinCtrlPreviewCamera->Disable();
     sizerStaticOutput->Add(spinCtrlPreviewCamera, wxSizerFlags().Border(wxDOWN | wxLEFT | wxRIGHT));
 
+
+
     SetSizerAndFit(sizer);
 }
 
@@ -66,6 +83,12 @@ void UiPanelTools::onSpinCtrlCamerasCount(wxSpinEvent& event) {
 void UiPanelTools::onSpinCtrlCamerasDistance(wxSpinDoubleEvent& event) {
     UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
     frame->truthCameras->setDistance((float)event.GetValue());
+}
+
+void UiPanelTools::onButtonCamerasCapture(wxCommandEvent& event) {
+    UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
+    frame->trainer->captureTruths(*frame->truthCameras, *frame->rtx);
+    textCamerasStatus->SetLabel("[ " + to_string(frame->trainer->truths.size()) + " saved truth frames ]");
 }
 
 void UiPanelTools::onCheckBoxPreviewCamera(wxCommandEvent& event) {

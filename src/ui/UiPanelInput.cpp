@@ -23,7 +23,7 @@ void UiPanelInput::render() {
     glClear(GL_COLOR_BUFFER_BIT);
 
     UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
-    frame->rtx->render(frameBuffer, *frame->truthCameras);
+    frame->rtx->render(frameBuffer, frame->truthCameras->getPreviewCamera(), frame->truthCameras);
 
     // Post-update
     OWL_CUDA_CHECK(cudaGraphicsMapResources(1, &textureCuda));
