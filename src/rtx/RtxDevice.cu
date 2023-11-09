@@ -39,7 +39,7 @@ inline __device__ vec3f tracePath(const RayGenerator& rayGen, Ray& ray, PerRayDa
         }
 
         // The ray hit the sky or a light source
-        if(!prd.hitDetected) return attenuation;
+        if(!prd.hitDetected) return i == 0 ? vec3f(0.0f, 0.0f, 0.0f) : attenuation;
 
         // Re-initialize the ray based on collision parameters
         ray = Ray(prd.hitOrigin, prd.bounceDirection, 1e-3f, 1e10f);
@@ -145,4 +145,5 @@ OPTIX_MISS_PROGRAM(miss)() {
 
     vec3f rayNormal = normalize(vec3f(optixGetWorldRayDirection()));
     prd.color = vec3f(min(1.0f, 1.0f + rayNormal.y));
+    //prd.color = vec3f(0.0f, 0.0f, 0.0f);
 }

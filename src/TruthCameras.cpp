@@ -2,6 +2,10 @@
 
 using namespace owl;
 
+glm::vec3 TruthCameras::toGlmVec(const owl::vec3f& owlVec) {
+    return {owlVec.x, owlVec.y, owlVec.z};
+}
+
 TruthCameras::TruthCameras() {
     refresh();
 }
@@ -12,14 +16,13 @@ void TruthCameras::update(float delta) {
 
 Camera TruthCameras::getActiveCamera() {
     static const vec3f target = {0.0f, 0.0f, 0.0f};
-    static const float fov = 120.0f;
 
     previewPerspective = min(count - 1, max(-1, previewPerspective));
 
     if(previewPerspective == -1) {
         return {vec3f(cos(previewTimer / 2.0f), 0.4f, sin(previewTimer / 2.0f)) * vec3f(10.0f),
-                target, fov, fov};
-    } else return {locations[previewPerspective], target, fov, fov};
+                target, RENDER_FOV_X, RENDER_FOV_Y};
+    } else return {locations[previewPerspective], target, RENDER_FOV_X, RENDER_FOV_Y};
 }
 
 void TruthCameras::setCount(int countArg) {

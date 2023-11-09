@@ -47,7 +47,6 @@ RtxHost::RtxHost(const owl::vec2i size) : size(size) {
     owlBuildPipeline(context);
 
     initialized = false;
-    timer = 0.0f;
 }
 
 static OWLTexture loadTexture(OWLContext context, const string& path) {
@@ -160,7 +159,7 @@ void RtxHost::load(const string& pathModel, const string& pathTexture) {
     initialized = true;
 }
 
-void RtxHost::render(float delta, uint64_t frameBuffer, TruthCameras& cameras) {
+void RtxHost::render(uint32_t* frameBuffer, TruthCameras& cameras) {
     owlRayGenSet1i(rayGen, "splatCamerasCount", cameras.previewPerspective == -1 ? cameras.getCount() : 0);
 
     if (cameras.pollInputUpdate()) {
@@ -168,19 +167,17 @@ void RtxHost::render(float delta, uint64_t frameBuffer, TruthCameras& cameras) {
         owlRayGenSetBuffer(rayGen, "splatCameras", splatCamerasBuffer);
     }
 
-    timer += delta;
-
     if(initialized) {
         Camera camera = cameras.getActiveCamera();
 
         // Calculate camera parameters
         vec3f cameraDir = normalize(camera.target - camera.location);
-        vec3f cameraDirRight = cosf(camera.degFovX * (float)M_PI / 180.0f) * 2.0f * normalize(cross(cameraDir, {0.0f, 1.0f, 0.0f}));
-        vec3f cameraDirUp = cosf(camera.degFovY * (float)M_PI / 180.0f) * 2.0f * normalize(cross(cameraDirRight, cameraDir));
+        vec3f cameraDirRight = cos(camera.degFovX * 0.5f * (float)M_PI / 180.0f) * 2.0f * normalize(cross(cameraDir, {0.0f, 1.0f, 0.0f}));
+        vec3f cameraDirUp = cos(camera.degFovY * 0.5f * (float)M_PI / 180.0f) * 2.0f * normalize(cross(cameraDirRight, cameraDir));
         vec3f cameraOriginPixel = cameraDir - 0.5f * cameraDirRight - 0.5f * cameraDirUp;
 
         // Send camera parameters to the ray tracer
-        owlRayGenSet1ul(rayGen, "frameBuffer", frameBuffer);
+        owlRayGenSet1ul(rayGen, "frameBuffer", (uint64_t)frameBuffer);
         owlRayGenSet2i(rayGen, "size", size.x, size.y);
         owlRayGenSet3f(rayGen, "camera.location", (const owl3f&)camera.location);
         owlRayGenSet3f(rayGen, "camera.originPixel", (const owl3f&)cameraOriginPixel);

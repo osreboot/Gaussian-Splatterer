@@ -3,6 +3,9 @@
 #include <owl/owl.h>
 #include <owl/common/math/vec.h>
 #include <vector>
+#include <diff-gaussian-rasterization/third_party/glm/glm/glm.hpp>
+
+#include "Config.h"
 
 struct Camera {
 
@@ -14,6 +17,9 @@ struct Camera {
 };
 
 class TruthCameras {
+
+public:
+    static glm::vec3 toGlmVec(const owl::vec3f& owlVec);
 
 private:
     bool updatedInput = false;

@@ -1,10 +1,10 @@
-#include "SplatFrame.h"
+#include "ui/UiFrame.h"
 
 class SplatApp : public wxApp {
 
 public:
     bool OnInit() override {
-        SplatFrame* frame = new SplatFrame();
+        UiFrame* frame = new UiFrame();
         frame->Show();
         return true;
     }

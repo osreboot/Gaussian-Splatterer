@@ -1,18 +1,18 @@
-#include "SplatPanelTools.h"
-#include "SplatFrame.h"
+#include "UiPanelTools.h"
+#include "UiFrame.h"
 
 using namespace std;
 
-SplatPanelTools::SplatPanelTools(wxWindow *parent) : wxPanel(parent) {
-    SplatFrame* frame = dynamic_cast<SplatFrame*>(GetParent()->GetParent());
+UiPanelTools::UiPanelTools(wxWindow *parent) : wxPanel(parent) {
+    UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
 
     sizer = new wxBoxSizer(wxVERTICAL);
 
     sizerStaticInput = new wxStaticBoxSizer(wxVERTICAL, this, "Input Model Data");
-    sizer->Add(sizerStaticInput, wxSizerFlags().Expand());
+    sizer->Add(sizerStaticInput, wxSizerFlags().Expand().Border());
 
     sizerStaticTruth = new wxStaticBoxSizer(wxVERTICAL, this, "Build Truth Data");
-    sizer->Add(sizerStaticTruth, wxSizerFlags().Expand());
+    sizer->Add(sizerStaticTruth, wxSizerFlags().Expand().Border());
 
     auto textCtrlCamerasCount = new wxStaticText(this, wxID_ANY, "Perspective Number");
     sizerStaticTruth->Add(textCtrlCamerasCount, wxSizerFlags().Border(wxUP | wxLEFT | wxRIGHT));
@@ -20,7 +20,7 @@ SplatPanelTools::SplatPanelTools(wxWindow *parent) : wxPanel(parent) {
     spinCtrlCamerasCount->SetRange(1, 128);
     spinCtrlCamerasCount->SetValue(frame->truthCameras->getCount());
     spinCtrlCamerasCount->SetMinSize({64, -1});
-    spinCtrlCamerasCount->Bind(wxEVT_COMMAND_SPINCTRL_UPDATED, &SplatPanelTools::onSpinCtrlCamerasCount, this);
+    spinCtrlCamerasCount->Bind(wxEVT_COMMAND_SPINCTRL_UPDATED, &UiPanelTools::onSpinCtrlCamerasCount, this);
     sizerStaticTruth->Add(spinCtrlCamerasCount, wxSizerFlags().Border(wxDOWN | wxLEFT | wxRIGHT));
 
     auto textCtrlCamerasDistance = new wxStaticText(this, wxID_ANY, "Perspective Distance");
@@ -31,17 +31,17 @@ SplatPanelTools::SplatPanelTools(wxWindow *parent) : wxPanel(parent) {
     spinCtrlCamerasDistance->SetIncrement(0.1);
     spinCtrlCamerasDistance->SetValue(frame->truthCameras->getDistance());
     spinCtrlCamerasDistance->SetMinSize({64, -1});
-    spinCtrlCamerasDistance->Bind(wxEVT_COMMAND_SPINCTRLDOUBLE_UPDATED, &SplatPanelTools::onSpinCtrlCamerasDistance, this);
+    spinCtrlCamerasDistance->Bind(wxEVT_COMMAND_SPINCTRLDOUBLE_UPDATED, &UiPanelTools::onSpinCtrlCamerasDistance, this);
     sizerStaticTruth->Add(spinCtrlCamerasDistance, wxSizerFlags().Border(wxDOWN | wxLEFT | wxRIGHT));
 
     sizerStaticTrain = new wxStaticBoxSizer(wxVERTICAL, this, "Train Splats");
-    sizer->Add(sizerStaticTrain, wxSizerFlags().Expand());
+    sizer->Add(sizerStaticTrain, wxSizerFlags().Expand().Border());
 
     sizerStaticOutput = new wxStaticBoxSizer(wxVERTICAL, this, "Visualize Splats");
-    sizer->Add(sizerStaticOutput, wxSizerFlags().Expand());
+    sizer->Add(sizerStaticOutput, wxSizerFlags().Expand().Border());
 
     checkBoxPreviewCamera = new wxCheckBox(this, wxID_ANY, "View Truth Perspective");
-    checkBoxPreviewCamera->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &SplatPanelTools::onCheckBoxPreviewCamera, this);
+    checkBoxPreviewCamera->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &UiPanelTools::onCheckBoxPreviewCamera, this);
     sizerStaticOutput->Add(checkBoxPreviewCamera, wxSizerFlags().Border(wxDOWN | wxUP));
 
     auto textCtrlPreviewCamera = new wxStaticText(this, wxID_ANY, "View Perspective Index");
@@ -50,26 +50,26 @@ SplatPanelTools::SplatPanelTools(wxWindow *parent) : wxPanel(parent) {
     spinCtrlPreviewCamera->SetRange(1, frame->truthCameras->getCount());
     spinCtrlPreviewCamera->SetValue(1);
     spinCtrlPreviewCamera->SetMinSize({64, -1});
-    spinCtrlPreviewCamera->Bind(wxEVT_COMMAND_SPINCTRL_UPDATED, &SplatPanelTools::onSpinCtrlPreviewCamera, this);
+    spinCtrlPreviewCamera->Bind(wxEVT_COMMAND_SPINCTRL_UPDATED, &UiPanelTools::onSpinCtrlPreviewCamera, this);
     spinCtrlPreviewCamera->Disable();
     sizerStaticOutput->Add(spinCtrlPreviewCamera, wxSizerFlags().Border(wxDOWN | wxLEFT | wxRIGHT));
 
     SetSizerAndFit(sizer);
 }
 
-void SplatPanelTools::onSpinCtrlCamerasCount(wxSpinEvent& event) {
-    SplatFrame* frame = dynamic_cast<SplatFrame*>(GetParent()->GetParent());
+void UiPanelTools::onSpinCtrlCamerasCount(wxSpinEvent& event) {
+    UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
     frame->truthCameras->setCount(event.GetValue());
     spinCtrlPreviewCamera->SetRange(1, event.GetValue());
 }
 
-void SplatPanelTools::onSpinCtrlCamerasDistance(wxSpinDoubleEvent& event) {
-    SplatFrame* frame = dynamic_cast<SplatFrame*>(GetParent()->GetParent());
+void UiPanelTools::onSpinCtrlCamerasDistance(wxSpinDoubleEvent& event) {
+    UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
     frame->truthCameras->setDistance((float)event.GetValue());
 }
 
-void SplatPanelTools::onCheckBoxPreviewCamera(wxCommandEvent& event) {
-    SplatFrame* frame = dynamic_cast<SplatFrame*>(GetParent()->GetParent());
+void UiPanelTools::onCheckBoxPreviewCamera(wxCommandEvent& event) {
+    UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
     if(event.IsChecked()) {
         frame->truthCameras->previewPerspective = spinCtrlPreviewCamera->GetValue() - 1;
         spinCtrlPreviewCamera->Enable();
@@ -79,7 +79,7 @@ void SplatPanelTools::onCheckBoxPreviewCamera(wxCommandEvent& event) {
     }
 }
 
-void SplatPanelTools::onSpinCtrlPreviewCamera(wxSpinEvent& event) {
-    SplatFrame* frame = dynamic_cast<SplatFrame*>(GetParent()->GetParent());
+void UiPanelTools::onSpinCtrlPreviewCamera(wxSpinEvent& event) {
+    UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
     frame->truthCameras->previewPerspective = event.GetValue() - 1;
 }

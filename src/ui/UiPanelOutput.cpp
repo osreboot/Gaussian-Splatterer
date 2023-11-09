@@ -1,11 +1,9 @@
-#include "SplatPanelInput.h"
-#include "SplatFrame.h"
+#include "UiPanelOutput.h"
+#include "UiFrame.h"
 
 using namespace std;
 
-SplatPanelInput::SplatPanelInput(wxWindow *parent) : wxGLCanvas(parent) {
-    context = new wxGLContext(this);
-
+UiPanelOutput::UiPanelOutput(wxWindow *parent, wxGLContext* context) : wxGLCanvas(parent), context(context) {
     wxGLCanvas::SetCurrent(*context);
 
     OWL_CUDA_CHECK(cudaMallocManaged(&frameBuffer, RENDER_RESOLUTION_X * RENDER_RESOLUTION_Y * sizeof(uint32_t)));
@@ -13,33 +11,16 @@ SplatPanelInput::SplatPanelInput(wxWindow *parent) : wxGLCanvas(parent) {
     glBindTexture(GL_TEXTURE_2D, textureFrameBuffer);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     OWL_CUDA_CHECK(cudaGraphicsGLRegisterImage(&textureCuda, textureFrameBuffer, GL_TEXTURE_2D, 0));
-
-    rtx = new RtxHost({RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y});
-    rtx->load(R"(C:\Users\Calvin\Desktop\Archives\Development\Resources\Gecko 3d model\Gecko_m1.obj)",
-              R"(C:\Users\Calvin\Desktop\Archives\Development\Resources\Gecko 3d model\Files\Textures\Gecko Body Texture.BMP)");
-
-    timeLastUpdate = chrono::high_resolution_clock::now();
 }
 
-SplatPanelInput::~SplatPanelInput() {
-    delete context;
-    delete rtx;
-}
-
-void SplatPanelInput::render() {
+void UiPanelOutput::render() {
     wxGLCanvas::SetCurrent(*context);
-
-    timeNow = chrono::high_resolution_clock::now();
-    float delta = (float)chrono::duration_cast<chrono::nanoseconds>(timeNow - timeLastUpdate).count() / 1000000000.0f;
-    //delta = min(delta, 0.2f);
-    timeLastUpdate = timeNow;
 
     // Pre-update
     glClear(GL_COLOR_BUFFER_BIT);
 
-    SplatFrame* frame = dynamic_cast<SplatFrame*>(GetParent()->GetParent());
-    frame->truthCameras->update(delta);
-    rtx->render(delta, (uint64_t)frameBuffer, *frame->truthCameras);
+    UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
+    frame->trainer->render(frameBuffer, *frame->truthCameras);
 
     // Post-update
     OWL_CUDA_CHECK(cudaGraphicsMapResources(1, &textureCuda));
@@ -83,17 +64,17 @@ void SplatPanelInput::render() {
     SwapBuffers();
 }
 
-void SplatPanelInput::onPaint(wxPaintEvent& event) {
+void UiPanelOutput::onPaint(wxPaintEvent& event) {
     if (!IsShown()) return;
     render();
 }
 
-void SplatPanelInput::onIdle(wxIdleEvent& event) {
+void UiPanelOutput::onIdle(wxIdleEvent& event) {
     render();
     event.RequestMore();
 }
 
-BEGIN_EVENT_TABLE(SplatPanelInput, wxGLCanvas)
-EVT_PAINT(SplatPanelInput::onPaint)
-EVT_IDLE(SplatPanelInput::onIdle)
+BEGIN_EVENT_TABLE(UiPanelOutput, wxGLCanvas)
+EVT_PAINT(UiPanelOutput::onPaint)
+EVT_IDLE(UiPanelOutput::onIdle)
 END_EVENT_TABLE()

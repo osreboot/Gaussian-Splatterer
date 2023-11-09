@@ -3,7 +3,7 @@
 #include <wx/wx.h>
 #include <wx/spinctrl.h>
 
-class SplatPanelTools : public wxPanel {
+class UiPanelTools : public wxPanel {
 
 private:
     wxBoxSizer* sizer;
@@ -20,12 +20,12 @@ private:
     wxSpinCtrl* spinCtrlPreviewCamera;
 
 public:
-    SplatPanelTools(wxWindow *parent);
+    UiPanelTools(wxWindow *parent);
 
     void onSpinCtrlCamerasCount(wxSpinEvent& event);
     void onSpinCtrlCamerasDistance(wxSpinDoubleEvent& event);
 
-    void SplatPanelTools::onCheckBoxPreviewCamera(wxCommandEvent& event);
-    void SplatPanelTools::onSpinCtrlPreviewCamera(wxSpinEvent& event);
+    void UiPanelTools::onCheckBoxPreviewCamera(wxCommandEvent& event);
+    void UiPanelTools::onSpinCtrlPreviewCamera(wxSpinEvent& event);
 
 };

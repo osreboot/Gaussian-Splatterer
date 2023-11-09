@@ -1,14 +1,21 @@
 target_sources(${PROJECT_NAME} PRIVATE
         Main.cpp
-        SplatFrame.cpp
-        SplatFrame.h
-        SplatPanelInput.cpp
-        SplatPanelInput.h
-        SplatPanelTools.cpp
-        SplatPanelTools.h
+        Config.h
+        ModelSplats.cpp
+        ModelSplats.h
         StbImpl.cpp
+        Trainer.cu
+        Trainer.cuh
         TruthCameras.cpp
         TruthCameras.h
         rtx/RtxHost.cpp
         rtx/RtxHost.h
+        ui/UiFrame.cpp
+        ui/UiFrame.h
+        ui/UiPanelInput.cpp
+        ui/UiPanelInput.h
+        ui/UiPanelOutput.cpp
+        ui/UiPanelOutput.h
+        ui/UiPanelTools.cpp
+        ui/UiPanelTools.h
         )
