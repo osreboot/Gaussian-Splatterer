@@ -1,3 +1,4 @@
+#include <unordered_set>
 #include <cmath>
 
 #include "ui/UiPanelInput.h"
@@ -27,17 +28,14 @@ __global__ void lossKernel(const uint32_t* truth, const float* rasterized, float
 
         uint32_t truthRgba = truth[y * w + x];
 
-        loss[y * w + x] =
-                (((float)(truthRgba & 0xFF) / 255.0f) - rasterized[y * w + x]) / 255.0f;
-        loss[(y * w + x) + w * h] =
-                (((float)((truthRgba >> 8) & 0xFF) / 255.0f) - rasterized[(y * w + x) + w * h]) / 255.0f;
-        loss[(y * w + x) + 2 * w * h] =
-                (((float)((truthRgba >> 16) & 0xFF) / 255.0f) - rasterized[(y * w + x) + 2 * w * h]) / 255.0f;
+        loss[y * w + x] = ((float)(truthRgba & 0xFF) / 255.0f) - rasterized[y * w + x];
+        loss[(y * w + x) + w * h] = ((float)((truthRgba >> 8) & 0xFF) / 255.0f) - rasterized[(y * w + x) + w * h];
+        loss[(y * w + x) + 2 * w * h] = ((float)((truthRgba >> 16) & 0xFF) / 255.0f) - rasterized[(y * w + x) + 2 * w * h];
     }
 }
 
 __global__ void gradientSumKernel(float* avgLocations, float* avgShs, float* avgScales, float* avgOpacities, float* avgRotations,
-                                      float* locations, float* shs, float* scales, float* opacities, float* rotations,
+                                      const float* locations, const float* shs, const float* scales, const float* opacities, const float* rotations,
                                       float samples, int shCoeffs, int step, int n) {
     for(int i = blockIdx.x * blockDim.x + threadIdx.x; i < n; i += step){
         avgLocations[i * 3] += locations[i * 3] / samples;
@@ -63,6 +61,14 @@ __global__ void gradientSumKernel(float* avgLocations, float* avgShs, float* avg
     }
 }
 
+__global__ void locationVarianceKernel(float* varLocations, const float* locations, float samples, int step, int n) {
+    for(int i = blockIdx.x * blockDim.x + threadIdx.x; i < n; i += step){
+        varLocations[i] += sqrtf((locations[i * 3] * locations[i * 3]) +
+                (locations[i * 3 + 1] * locations[i * 3 + 1]) +
+                (locations[i * 3 + 2] * locations[i * 3 + 2])) / samples;
+    }
+}
+
 Trainer::Trainer() {
     cudaMalloc(&devBackground, 3 * sizeof(float));
     cudaMalloc(&devMatView, 16 * sizeof(float));
@@ -77,7 +83,7 @@ Trainer::Trainer() {
             for(int z = 0; z < 5; z++){
                 model->pushBack({(float)x - 2.0f, (float)y - 2.0f, (float)z - 2.0f},
                                 {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f}, {0.2f, 0.2f, 0.2f},
-                                1.0f, glm::angleAxis(glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f)));
+                                1.0f, glm::angleAxis(0.0f, glm::vec3(0.0f, 1.0f, 0.0f)));
             }
         }
     }
@@ -185,6 +191,9 @@ void Trainer::train(bool densify) {
 
     model->deviceBuffer();
 
+    float* devVarLocations;
+    cudaMalloc(&devVarLocations, model->count * sizeof(float));
+    cudaMemset(devVarLocations, 0, model->count * sizeof(float));
     float* devAvgGradLocations;
     cudaMalloc(&devAvgGradLocations, model->count * 3 * sizeof(float));
     cudaMemset(devAvgGradLocations, 0, model->count * 3 * sizeof(float));
@@ -326,6 +335,8 @@ void Trainer::train(bool densify) {
                                         devGradLocations, devGradShs, devGradScales, devGradOpacities, devGradRotations,
                                         (float)truthFrameBuffers.size(), model->shCoeffs, 256 * 256, model->count);
 
+        locationVarianceKernel<<<256, 256>>>(devVarLocations, devGradLocations, (float)truthFrameBuffers.size(), 256 * 256, model->count);
+
         cudaFree(geomBuffer);
         cudaFree(binningBuffer);
         cudaFree(imgBuffer);
@@ -344,6 +355,8 @@ void Trainer::train(bool densify) {
     cudaFree(devGradColor);
     cudaFree(devGradCov3D);
 
+    float* varLocations = new float[model->count];
+    cudaMemcpy(varLocations, devVarLocations, model->count * sizeof(float), cudaMemcpyDeviceToHost);
     float* avgGradLocations = new float[model->count * 3];
     cudaMemcpy(avgGradLocations, devAvgGradLocations, model->count * 3 * sizeof(float), cudaMemcpyDeviceToHost);
     float* avgGradShs = new float[model->count * 3 * model->shCoeffs];
@@ -355,9 +368,11 @@ void Trainer::train(bool densify) {
     float* avgGradRotations = new float[model->count * 4];
     cudaMemcpy(avgGradRotations, devAvgGradRotations, model->count * 4 * sizeof(float), cudaMemcpyDeviceToHost);
 
-    static const float learningRate = 0.02f;
+    static const float learningRate = 0.0001f;
 
-    for (int i = 0; i < model->count; i++) {
+    // Apply gradients
+    std::unordered_set<int> toSplit, toRemove;
+    for(int i = 0; i < model->count; i++) {
         for(int f = 0; f < 3; f++) {
             model->locations[i * 3 + f] += avgGradLocations[i * 3 + f] * learningRate;
         }
@@ -368,22 +383,72 @@ void Trainer::train(bool densify) {
             model->scales[i * 3 + f] += avgGradScales[i * 3 + f] * learningRate;
             model->scales[i * 3 + f] = std::max(0.0f, model->scales[i * 3 + f]);
         }
-        model->opacities[i] = std::max(1.0f, std::min(0.0f, model->opacities[i] + avgGradOpacities[i] * learningRate));
+        model->opacities[i] = std::min(1.0f, std::max(0.0f, model->opacities[i] + avgGradOpacities[i] * learningRate));
         for(int f = 0; f < 4; f++) {
             model->rotations[i * 4 + f] += avgGradRotations[i * 4 + f] * learningRate;
         }
+
+        if(varLocations[i] > 10.0f) toSplit.insert(i);
+
+        if(model->opacities[i] <= 0.001f) toRemove.insert(i);
+        if(glm::length(glm::vec3(model->scales[i * 3], model->scales[i * 3 + 1], model->scales[i * 3 + 2])) < 0.01f) toRemove.insert(i);
     }
 
+    if(densify) {
+        // Split volatile splats
+        for (int i : toSplit) {
+            if (model->count < model->capacity) {
+                glm::vec3 locPre(model->locations[i * 3], model->locations[i * 3 + 1], model->locations[i * 3 + 2]);
+                glm::vec4 scalePre4(model->scales[i * 3], model->scales[i * 3 + 1], model->scales[i * 3 + 2], 1.0f);
+                glm::quat rotPre(model->rotations[i * 4], model->rotations[i * 4 + 1], model->rotations[i * 4 + 2], model->rotations[i * 4 + 3]);
+
+                scalePre4 = (glm::mat4)rotPre * scalePre4;
+                glm::vec3 scalePre(scalePre4.x / scalePre4.w, scalePre4.y / scalePre4.w, scalePre4.z / scalePre4.w);
+
+                glm::quat rotZero = glm::angleAxis(0.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+
+                glm::vec3 locNew1 = locPre + scalePre * 0.5f;
+                glm::vec3 locNew2 = locPre - scalePre * 0.5f;
+
+                glm::vec3 scaleNew = glm::vec3(model->scales[i * 3], model->scales[i * 3 + 1], model->scales[i * 3 + 2]) / 1.6f;
+
+                int i2 = model->count;
+                model->count++;
+                model->copy(i2, i); // Create a duplicate splat at the end of the array
+
+                memcpy(&model->locations[i * 3], &locNew1[0], 3 * sizeof(float));
+                memcpy(&model->locations[i2 * 3], &locNew2[0], 3 * sizeof(float));
+                memcpy(&model->scales[i * 3], &scaleNew[0], 3 * sizeof(float));
+                memcpy(&model->scales[i2 * 3], &scaleNew[0], 3 * sizeof(float));
+                memcpy(&model->rotations[i * 4], &rotPre[0], 4 * sizeof(float));
+                memcpy(&model->rotations[i2 * 4], &rotPre[0], 4 * sizeof(float));
+            }
+        }
+
+        // Prune small/transparent splats
+        if (!toRemove.empty()) {
+            int indexPreserved = 0;
+            for(int indexScan = 0; indexScan < model->count; indexScan++) {
+                if (!toRemove.count(indexScan)) {
+                    if (indexPreserved != indexScan) model->copy(indexPreserved, indexScan);
+                    indexPreserved++;
+                }
+            }
+            model->count -= (int)toRemove.size();
+        }
+    }
+
+    cudaFree(devVarLocations);
     cudaFree(devAvgGradLocations);
     cudaFree(devAvgGradShs);
     cudaFree(devAvgGradScales);
     cudaFree(devAvgGradOpacities);
     cudaFree(devAvgGradRotations);
 
+    delete[] varLocations;
     delete[] avgGradLocations;
     delete[] avgGradShs;
     delete[] avgGradScales;
     delete[] avgGradOpacities;
     delete[] avgGradRotations;
-
 }

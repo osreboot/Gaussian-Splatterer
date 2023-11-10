@@ -27,7 +27,7 @@ UiPanelTools::UiPanelTools(wxWindow *parent) : wxPanel(parent) {
     auto textCtrlCamerasCount = new wxStaticText(this, wxID_ANY, "Perspective Number");
     sizerStaticTruth->Add(textCtrlCamerasCount, wxSizerFlags().Border(wxUP | wxLEFT | wxRIGHT));
     spinCtrlCamerasCount = new wxSpinCtrl(this);
-    spinCtrlCamerasCount->SetRange(1, 128);
+    spinCtrlCamerasCount->SetRange(1, 512);
     spinCtrlCamerasCount->SetValue(frame->truthCameras->getCount());
     spinCtrlCamerasCount->SetMinSize({64, -1});
     spinCtrlCamerasCount->Bind(wxEVT_COMMAND_SPINCTRL_UPDATED, &UiPanelTools::onSpinCtrlCamerasCount, this);
