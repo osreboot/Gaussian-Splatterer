@@ -3,6 +3,12 @@
 
 using namespace std;
 
+void UiPanelTools::updateSplatCount() {
+    UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
+    textSplatCount->SetLabel(to_string(frame->trainer->model->count) + " / " +
+        to_string(frame->trainer->model->capacity) + " splats");
+}
+
 UiPanelTools::UiPanelTools(wxWindow *parent) : wxPanel(parent) {
     UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
 
@@ -50,6 +56,31 @@ UiPanelTools::UiPanelTools(wxWindow *parent) : wxPanel(parent) {
     sizerStaticTrain = new wxStaticBoxSizer(wxVERTICAL, this, "3. Train Splats");
     sizer->Add(sizerStaticTrain, wxSizerFlags().Expand().Border());
 
+    buttonTrain = new wxButton(this, wxID_ANY, "Train (1x)");
+    buttonTrain->Bind(wxEVT_COMMAND_BUTTON_CLICKED, &UiPanelTools::onButtonTrain, this);
+    buttonTrain->Disable();
+    sizerStaticTrain->Add(buttonTrain, wxSizerFlags().Expand().Border());
+
+    buttonTrain10 = new wxButton(this, wxID_ANY, "Train (10x)");
+    buttonTrain10->Bind(wxEVT_COMMAND_BUTTON_CLICKED, &UiPanelTools::onButtonTrain10, this);
+    buttonTrain10->Disable();
+    sizerStaticTrain->Add(buttonTrain10, wxSizerFlags().Expand().Border());
+
+    buttonTrain100 = new wxButton(this, wxID_ANY, "Train (100x)");
+    buttonTrain100->Bind(wxEVT_COMMAND_BUTTON_CLICKED, &UiPanelTools::onButtonTrain100, this);
+    buttonTrain100->Disable();
+    sizerStaticTrain->Add(buttonTrain100, wxSizerFlags().Expand().Border());
+
+    buttonTrainDensify = new wxButton(this, wxID_ANY, "Train (Densify, 1x)");
+    buttonTrainDensify->Bind(wxEVT_COMMAND_BUTTON_CLICKED, &UiPanelTools::onButtonTrainDensify, this);
+    buttonTrainDensify->Disable();
+    sizerStaticTrain->Add(buttonTrainDensify, wxSizerFlags().Expand().Border());
+
+    textSplatCount = new wxStaticText(this, wxID_ANY, to_string(frame->trainer->model->count) + " / " +
+        to_string(frame->trainer->model->capacity) + " splats");
+    sizerStaticTrain->Add(textSplatCount, wxSizerFlags().Border());
+
+
 
 
     sizerStaticOutput = new wxStaticBoxSizer(wxVERTICAL, this, "4. Visualize Splats");
@@ -88,7 +119,32 @@ void UiPanelTools::onSpinCtrlCamerasDistance(wxSpinDoubleEvent& event) {
 void UiPanelTools::onButtonCamerasCapture(wxCommandEvent& event) {
     UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
     frame->trainer->captureTruths(*frame->truthCameras, *frame->rtx);
-    textCamerasStatus->SetLabel("[ " + to_string(frame->trainer->truths.size()) + " saved truth frames ]");
+    textCamerasStatus->SetLabel("[ " + to_string(frame->trainer->truthFrameBuffers.size()) + " saved truth frames ]");
+    buttonTrain->Enable();
+    buttonTrain10->Enable();
+    buttonTrain100->Enable();
+    buttonTrainDensify->Enable();
+}
+
+void UiPanelTools::onButtonTrain(wxCommandEvent& event) {
+    UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
+    frame->trainer->train(false);
+}
+
+void UiPanelTools::onButtonTrain10(wxCommandEvent& event) {
+    UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
+    frame->trainer->train(10);
+}
+
+void UiPanelTools::onButtonTrain100(wxCommandEvent& event) {
+    UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
+    frame->trainer->train(100);
+}
+
+void UiPanelTools::onButtonTrainDensify(wxCommandEvent& event) {
+    UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
+    frame->trainer->train(true);
+    updateSplatCount();
 }
 
 void UiPanelTools::onCheckBoxPreviewCamera(wxCommandEvent& event) {

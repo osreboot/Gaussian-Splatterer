@@ -16,7 +16,8 @@ private:
 public:
     ModelSplats* model;
 
-    std::vector<uint32_t*> truths;
+    std::vector<uint32_t*> truthFrameBuffers;
+    std::vector<Camera> truthCameras;
 
     Trainer();
     Trainer(const Trainer&) = delete;
@@ -29,5 +30,8 @@ public:
     void render(uint32_t* frameBuffer, const Camera& camera);
 
     void captureTruths(const TruthCameras& cameras, RtxHost& rtx);
+
+    void train(int iterations);
+    void train(bool densify);
 
 };

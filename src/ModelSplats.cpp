@@ -38,7 +38,7 @@ void ModelSplats::pushBack(glm::vec3 location, std::vector<float> sh, glm::vec3 
     }
     memcpy(&scales[count * 3], &scale, 3 * sizeof(float));
     opacities[count] = opacity;
-    for(int i = 0; i < 4; i++) rotations[count * 4 + i] = rotation[i];
+    for(int i = 0; i < 4; i++) rotations[count * 4 + i] = rotation[i]; // TODO can memcpy be used here?
 
     count++;
 }
