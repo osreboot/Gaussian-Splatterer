@@ -3,6 +3,11 @@
 
 using namespace std;
 
+void UiPanelTools::updateIterationCount() {
+    UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
+    textIterationCount->SetLabel(to_string(frame->trainer->iterations) + " iterations");
+}
+
 void UiPanelTools::updateSplatCount() {
     UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
     textSplatCount->SetLabel(to_string(frame->trainer->model->count) + " / " +
@@ -44,6 +49,32 @@ UiPanelTools::UiPanelTools(wxWindow *parent) : wxPanel(parent) {
     spinCtrlCamerasDistance->Bind(wxEVT_COMMAND_SPINCTRLDOUBLE_UPDATED, &UiPanelTools::onSpinCtrlCamerasDistance, this);
     sizerStaticTruth->Add(spinCtrlCamerasDistance, wxSizerFlags().Border(wxDOWN | wxLEFT | wxRIGHT));
 
+    auto textCtrlCamerasRotX = new wxStaticText(this, wxID_ANY, "Rotation Offset (X)");
+    sizerStaticTruth->Add(textCtrlCamerasRotX, wxSizerFlags().Border(wxUP | wxLEFT | wxRIGHT));
+    spinCtrlCamerasRotX = new wxSpinCtrlDouble(this);
+    spinCtrlCamerasRotX->SetRange(0.0, 360.0);
+    spinCtrlCamerasRotX->SetDigits(1);
+    spinCtrlCamerasRotX->SetIncrement(1);
+    spinCtrlCamerasRotX->SetValue(frame->truthCameras->getRotationOffsetX());
+    spinCtrlCamerasRotX->SetMinSize({64, -1});
+    spinCtrlCamerasRotX->Bind(wxEVT_COMMAND_SPINCTRLDOUBLE_UPDATED, &UiPanelTools::onSpinCtrlCamerasRotX, this);
+    sizerStaticTruth->Add(spinCtrlCamerasRotX, wxSizerFlags().Border(wxDOWN | wxLEFT | wxRIGHT));
+
+    auto textCtrlCamerasRotY = new wxStaticText(this, wxID_ANY, "Rotation Offset (Y)");
+    sizerStaticTruth->Add(textCtrlCamerasRotY, wxSizerFlags().Border(wxUP | wxLEFT | wxRIGHT));
+    spinCtrlCamerasRotY = new wxSpinCtrlDouble(this);
+    spinCtrlCamerasRotY->SetRange(0.0, 360.0);
+    spinCtrlCamerasRotY->SetDigits(1);
+    spinCtrlCamerasRotY->SetIncrement(1);
+    spinCtrlCamerasRotY->SetValue(frame->truthCameras->getRotationOffsetY());
+    spinCtrlCamerasRotY->SetMinSize({64, -1});
+    spinCtrlCamerasRotY->Bind(wxEVT_COMMAND_SPINCTRLDOUBLE_UPDATED, &UiPanelTools::onSpinCtrlCamerasRotY, this);
+    sizerStaticTruth->Add(spinCtrlCamerasRotY, wxSizerFlags().Border(wxDOWN | wxLEFT | wxRIGHT));
+
+    buttonCamerasRotRandom = new wxButton(this, wxID_ANY, "Randomize Offset");
+    buttonCamerasRotRandom->Bind(wxEVT_COMMAND_BUTTON_CLICKED, &UiPanelTools::onButtonCamerasRotRandom, this);
+    sizerStaticTruth->Add(buttonCamerasRotRandom, wxSizerFlags().Expand().Border());
+
     buttonCamerasCapture = new wxButton(this, wxID_ANY, "Capture");
     buttonCamerasCapture->Bind(wxEVT_COMMAND_BUTTON_CLICKED, &UiPanelTools::onButtonCamerasCapture, this);
     sizerStaticTruth->Add(buttonCamerasCapture, wxSizerFlags().Expand().Border());
@@ -55,6 +86,9 @@ UiPanelTools::UiPanelTools(wxWindow *parent) : wxPanel(parent) {
 
     sizerStaticTrain = new wxStaticBoxSizer(wxVERTICAL, this, "3. Train Splats");
     sizer->Add(sizerStaticTrain, wxSizerFlags().Expand().Border());
+
+    textIterationCount = new wxStaticText(this, wxID_ANY, to_string(frame->trainer->iterations) + " iterations");
+    sizerStaticTrain->Add(textIterationCount, wxSizerFlags().Border());
 
     buttonTrain = new wxButton(this, wxID_ANY, "Train (1x)");
     buttonTrain->Bind(wxEVT_COMMAND_BUTTON_CLICKED, &UiPanelTools::onButtonTrain, this);
@@ -116,6 +150,23 @@ void UiPanelTools::onSpinCtrlCamerasDistance(wxSpinDoubleEvent& event) {
     frame->truthCameras->setDistance((float)event.GetValue());
 }
 
+void UiPanelTools::onSpinCtrlCamerasRotX(wxSpinDoubleEvent& event) {
+    UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
+    frame->truthCameras->setRotationOffset((float)event.GetValue(), frame->truthCameras->getRotationOffsetY());
+}
+
+void UiPanelTools::onSpinCtrlCamerasRotY(wxSpinDoubleEvent& event) {
+    UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
+    frame->truthCameras->setRotationOffset(frame->truthCameras->getRotationOffsetX(), (float)event.GetValue());
+}
+
+void UiPanelTools::onButtonCamerasRotRandom(wxCommandEvent& event) {
+    UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
+    frame->truthCameras->setRotationOffset(((float)rand() / (float)RAND_MAX) * 360.0f, ((float)rand() / (float)RAND_MAX) * 360.0f);
+    spinCtrlCamerasRotX->SetValue(frame->truthCameras->getRotationOffsetX());
+    spinCtrlCamerasRotY->SetValue(frame->truthCameras->getRotationOffsetY());
+}
+
 void UiPanelTools::onButtonCamerasCapture(wxCommandEvent& event) {
     UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
     frame->trainer->captureTruths(*frame->truthCameras, *frame->rtx);
@@ -129,16 +180,19 @@ void UiPanelTools::onButtonCamerasCapture(wxCommandEvent& event) {
 void UiPanelTools::onButtonTrain(wxCommandEvent& event) {
     UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
     frame->trainer->train(false);
+    updateIterationCount();
 }
 
 void UiPanelTools::onButtonTrain10(wxCommandEvent& event) {
     UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
     frame->trainer->train(10);
+    updateIterationCount();
 }
 
 void UiPanelTools::onButtonTrain100(wxCommandEvent& event) {
     UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
     frame->trainer->train(100);
+    updateIterationCount();
 }
 
 void UiPanelTools::onButtonTrainDensify(wxCommandEvent& event) {

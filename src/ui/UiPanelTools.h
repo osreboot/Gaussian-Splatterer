@@ -15,9 +15,13 @@ private:
 
     wxSpinCtrl* spinCtrlCamerasCount;
     wxSpinCtrlDouble* spinCtrlCamerasDistance;
+    wxSpinCtrlDouble* spinCtrlCamerasRotX;
+    wxSpinCtrlDouble* spinCtrlCamerasRotY;
+    wxButton* buttonCamerasRotRandom;
     wxButton* buttonCamerasCapture;
     wxStaticText* textCamerasStatus;
 
+    wxStaticText* textIterationCount;
     wxButton* buttonTrain;
     wxButton* buttonTrain10;
     wxButton* buttonTrain100;
@@ -27,6 +31,7 @@ private:
     wxCheckBox* checkBoxPreviewCamera;
     wxSpinCtrl* spinCtrlPreviewCamera;
 
+    void updateIterationCount();
     void updateSplatCount();
 
 public:
@@ -34,6 +39,9 @@ public:
 
     void onSpinCtrlCamerasCount(wxSpinEvent& event);
     void onSpinCtrlCamerasDistance(wxSpinDoubleEvent& event);
+    void onSpinCtrlCamerasRotX(wxSpinDoubleEvent& event);
+    void onSpinCtrlCamerasRotY(wxSpinDoubleEvent& event);
+    void onButtonCamerasRotRandom(wxCommandEvent& event);
     void onButtonCamerasCapture(wxCommandEvent& event);
 
     void onButtonTrain(wxCommandEvent& event);

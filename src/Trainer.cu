@@ -76,7 +76,7 @@ Trainer::Trainer() {
     cudaMalloc(&devCameraLocation, 3 * sizeof(float));
     cudaMalloc(&devRasterized, RENDER_RESOLUTION_X * RENDER_RESOLUTION_Y * 3 * sizeof(float));
 
-    model = new ModelSplats(1000, 1, 4);
+    model = new ModelSplats(1000000, 1, 4);
 
     for(int x = 0; x < 5; x++){
         for(int y = 0; y < 5; y++){
@@ -102,6 +102,33 @@ Trainer::~Trainer() {
     cudaFree(devMatProjView);
     cudaFree(devCameraLocation);
     cudaFree(devRasterized);
+
+    cudaFree(devVarLocations);
+    cudaFree(devAvgGradLocations);
+    cudaFree(devAvgGradShs);
+    cudaFree(devAvgGradScales);
+    cudaFree(devAvgGradOpacities);
+    cudaFree(devAvgGradRotations);
+
+    cudaFree(devLossPixels);
+
+    cudaFree(devGradLocations);
+    cudaFree(devGradShs);
+    cudaFree(devGradScales);
+    cudaFree(devGradOpacities);
+    cudaFree(devGradRotations);
+
+    cudaFree(devGradMean2D);
+    cudaFree(devGradConic);
+    cudaFree(devGradColor);
+    cudaFree(devGradCov3D);
+
+    delete[] varLocations;
+    delete[] avgGradLocations;
+    delete[] avgGradShs;
+    delete[] avgGradScales;
+    delete[] avgGradOpacities;
+    delete[] avgGradRotations;
 
     delete model;
 
@@ -189,49 +216,75 @@ void Trainer::train(int iterations) {
 void Trainer::train(bool densify) {
     assert(truths.size() > 0);
 
+    iterations++;
+
     model->deviceBuffer();
 
-    float* devVarLocations;
-    cudaMalloc(&devVarLocations, model->count * sizeof(float));
+    bool dirty = model->count != lastCount;
+    lastCount = model->count;
+
+    if(dirty) {
+        cudaFree(devVarLocations);
+        cudaFree(devAvgGradLocations);
+        cudaFree(devAvgGradShs);
+        cudaFree(devAvgGradScales);
+        cudaFree(devAvgGradOpacities);
+        cudaFree(devAvgGradRotations);
+
+        cudaFree(devLossPixels);
+
+        cudaFree(devGradLocations);
+        cudaFree(devGradShs);
+        cudaFree(devGradScales);
+        cudaFree(devGradOpacities);
+        cudaFree(devGradRotations);
+
+        cudaFree(devGradMean2D);
+        cudaFree(devGradConic);
+        cudaFree(devGradColor);
+        cudaFree(devGradCov3D);
+
+        delete[] varLocations;
+        delete[] avgGradLocations;
+        delete[] avgGradShs;
+        delete[] avgGradScales;
+        delete[] avgGradOpacities;
+        delete[] avgGradRotations;
+
+        cudaMalloc(&devVarLocations, model->count * sizeof(float));
+        cudaMalloc(&devAvgGradLocations, model->count * 3 * sizeof(float));
+        cudaMalloc(&devAvgGradShs, model->count * 3 * model->shCoeffs * sizeof(float));
+        cudaMalloc(&devAvgGradScales, model->count * 3 * sizeof(float));
+        cudaMalloc(&devAvgGradOpacities, model->count * sizeof(float));
+        cudaMalloc(&devAvgGradRotations, model->count * 4 * sizeof(float));
+
+        cudaMalloc(&devLossPixels, RENDER_RESOLUTION_X * RENDER_RESOLUTION_Y * 3 * sizeof(float));
+
+        cudaMalloc(&devGradLocations, model->count * 3 * sizeof(float));
+        cudaMalloc(&devGradShs, model->count * 3 * model->shCoeffs * sizeof(float));
+        cudaMalloc(&devGradScales, model->count * 3 * sizeof(float));
+        cudaMalloc(&devGradOpacities, model->count * sizeof(float));
+        cudaMalloc(&devGradRotations, model->count * 4 * sizeof(float));
+
+        cudaMalloc(&devGradMean2D, model->count * 3 * sizeof(float));
+        cudaMalloc(&devGradConic, model->count * 4 * sizeof(float));
+        cudaMalloc(&devGradColor, model->count * 3 * sizeof(float));
+        cudaMalloc(&devGradCov3D, model->count * 6 * sizeof(float));
+
+        varLocations = new float[model->count];
+        avgGradLocations = new float[model->count * 3];
+        avgGradShs = new float[model->count * 3 * model->shCoeffs];
+        avgGradScales = new float[model->count * 3];
+        avgGradOpacities = new float[model->count];
+        avgGradRotations = new float[model->count * 4];
+    }
+
     cudaMemset(devVarLocations, 0, model->count * sizeof(float));
-    float* devAvgGradLocations;
-    cudaMalloc(&devAvgGradLocations, model->count * 3 * sizeof(float));
     cudaMemset(devAvgGradLocations, 0, model->count * 3 * sizeof(float));
-    float* devAvgGradShs;
-    cudaMalloc(&devAvgGradShs, model->count * 3 * model->shCoeffs * sizeof(float));
     cudaMemset(devAvgGradShs, 0, model->count * 3 * model->shCoeffs * sizeof(float));
-    float* devAvgGradScales;
-    cudaMalloc(&devAvgGradScales, model->count * 3 * sizeof(float));
     cudaMemset(devAvgGradScales, 0, model->count * 3 * sizeof(float));
-    float* devAvgGradOpacities;
-    cudaMalloc(&devAvgGradOpacities, model->count * sizeof(float));
     cudaMemset(devAvgGradOpacities, 0, model->count * sizeof(float));
-    float* devAvgGradRotations;
-    cudaMalloc(&devAvgGradRotations, model->count * 4 * sizeof(float));
     cudaMemset(devAvgGradRotations, 0, model->count * 4 * sizeof(float));
-
-    float* devLossPixels;
-    cudaMalloc(&devLossPixels, RENDER_RESOLUTION_X * RENDER_RESOLUTION_Y * 3 * sizeof(float));
-
-    float* devGradLocations;
-    cudaMalloc(&devGradLocations, model->count * 3 * sizeof(float));
-    float* devGradShs;
-    cudaMalloc(&devGradShs, model->count * 3 * model->shCoeffs * sizeof(float));
-    float* devGradScales;
-    cudaMalloc(&devGradScales, model->count * 3 * sizeof(float));
-    float* devGradOpacities;
-    cudaMalloc(&devGradOpacities, model->count * sizeof(float));
-    float* devGradRotations;
-    cudaMalloc(&devGradRotations, model->count * 4 * sizeof(float));
-
-    float* devGradMean2D;
-    cudaMalloc(&devGradMean2D, model->count * 3 * sizeof(float));
-    float* devGradConic;
-    cudaMalloc(&devGradConic, model->count * 4 * sizeof(float));
-    float* devGradColor;
-    cudaMalloc(&devGradColor, model->count * 3 * sizeof(float));
-    float* devGradCov3D;
-    cudaMalloc(&devGradCov3D, model->count * 6 * sizeof(float));
 
     for (int i = 0; i < truthFrameBuffers.size(); i++) {
         uint32_t* truthFrameBuffer = truthFrameBuffers[i];
@@ -342,33 +395,15 @@ void Trainer::train(bool densify) {
         cudaFree(imgBuffer);
     }
 
-    cudaFree(devLossPixels);
-
-    cudaFree(devGradLocations);
-    cudaFree(devGradShs);
-    cudaFree(devGradScales);
-    cudaFree(devGradOpacities);
-    cudaFree(devGradRotations);
-
-    cudaFree(devGradMean2D);
-    cudaFree(devGradConic);
-    cudaFree(devGradColor);
-    cudaFree(devGradCov3D);
-
-    float* varLocations = new float[model->count];
     cudaMemcpy(varLocations, devVarLocations, model->count * sizeof(float), cudaMemcpyDeviceToHost);
-    float* avgGradLocations = new float[model->count * 3];
     cudaMemcpy(avgGradLocations, devAvgGradLocations, model->count * 3 * sizeof(float), cudaMemcpyDeviceToHost);
-    float* avgGradShs = new float[model->count * 3 * model->shCoeffs];
     cudaMemcpy(avgGradShs, devAvgGradShs, model->count * 3 * model->shCoeffs * sizeof(float), cudaMemcpyDeviceToHost);
-    float* avgGradScales = new float[model->count * 3];
     cudaMemcpy(avgGradScales, devAvgGradScales, model->count * 3 * sizeof(float), cudaMemcpyDeviceToHost);
-    float* avgGradOpacities = new float[model->count];
     cudaMemcpy(avgGradOpacities, devAvgGradOpacities, model->count * sizeof(float), cudaMemcpyDeviceToHost);
-    float* avgGradRotations = new float[model->count * 4];
     cudaMemcpy(avgGradRotations, devAvgGradRotations, model->count * 4 * sizeof(float), cudaMemcpyDeviceToHost);
 
     static const float learningRate = 0.0001f;
+    static const float learningRateRot = 0.00002f;
 
     // Apply gradients
     std::unordered_set<int> toSplit, toRemove;
@@ -385,7 +420,7 @@ void Trainer::train(bool densify) {
         }
         model->opacities[i] = std::min(1.0f, std::max(0.0f, model->opacities[i] + avgGradOpacities[i] * learningRate));
         for(int f = 0; f < 4; f++) {
-            model->rotations[i * 4 + f] += avgGradRotations[i * 4 + f] * learningRate;
+            model->rotations[i * 4 + f] += avgGradRotations[i * 4 + f] * learningRateRot;
         }
 
         if(varLocations[i] > 10.0f) toSplit.insert(i);
@@ -437,18 +472,4 @@ void Trainer::train(bool densify) {
             model->count -= (int)toRemove.size();
         }
     }
-
-    cudaFree(devVarLocations);
-    cudaFree(devAvgGradLocations);
-    cudaFree(devAvgGradShs);
-    cudaFree(devAvgGradScales);
-    cudaFree(devAvgGradOpacities);
-    cudaFree(devAvgGradRotations);
-
-    delete[] varLocations;
-    delete[] avgGradLocations;
-    delete[] avgGradShs;
-    delete[] avgGradScales;
-    delete[] avgGradOpacities;
-    delete[] avgGradRotations;
 }

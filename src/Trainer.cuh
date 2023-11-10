@@ -7,17 +7,48 @@
 class Trainer {
 
 private:
+    int lastCount = -1;
+
     float* devBackground;
     float* devMatView;
     float* devMatProjView;
     float* devCameraLocation;
     float* devRasterized;
 
+    float* devVarLocations;
+    float* devAvgGradLocations;
+    float* devAvgGradShs;
+    float* devAvgGradScales;
+    float* devAvgGradOpacities;
+    float* devAvgGradRotations;
+
+    float* devLossPixels;
+
+    float* devGradLocations;
+    float* devGradShs;
+    float* devGradScales;
+    float* devGradOpacities;
+    float* devGradRotations;
+
+    float* devGradMean2D;
+    float* devGradConic;
+    float* devGradColor;
+    float* devGradCov3D;
+
+    float* varLocations = nullptr;
+    float* avgGradLocations = nullptr;
+    float* avgGradShs = nullptr;
+    float* avgGradScales = nullptr;
+    float* avgGradOpacities = nullptr;
+    float* avgGradRotations = nullptr;
+
 public:
     ModelSplats* model;
 
     std::vector<uint32_t*> truthFrameBuffers;
     std::vector<Camera> truthCameras;
+
+    int iterations = 0;
 
     Trainer();
     Trainer(const Trainer&) = delete;

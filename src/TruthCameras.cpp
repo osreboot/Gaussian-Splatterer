@@ -1,5 +1,8 @@
 #include "TruthCameras.h"
 
+#include <diff-gaussian-rasterization/third_party/glm/glm/glm.hpp>
+#include <diff-gaussian-rasterization/third_party/glm/glm/gtc/quaternion.hpp>
+
 using namespace owl;
 
 glm::vec3 TruthCameras::toGlmVec(const owl::vec3f& owlVec) {
@@ -41,6 +44,12 @@ void TruthCameras::setDistance(float distanceArg) {
     refresh();
 }
 
+void TruthCameras::setRotationOffset(float x, float y) {
+    rotOffsetX = x;
+    rotOffsetY = y;
+    refresh();
+}
+
 bool TruthCameras::pollInputUpdate() {
     bool out = updatedInput;
     updatedInput = false;
@@ -50,6 +59,9 @@ bool TruthCameras::pollInputUpdate() {
 void TruthCameras::refresh() {
     locations.clear();
 
+    glm::mat4 rot = (glm::mat4)glm::angleAxis(glm::radians(rotOffsetY), glm::vec3(0.0f, 1.0f, 0.0f)) *
+            (glm::mat4)glm::angleAxis(glm::radians(rotOffsetX), glm::vec3(1.0f, 0.0f, 0.0f));
+
     // Algorithm source for Fibonacci sphere placement: https://youtu.be/lctXaT9pxA0?si=xJQE1KXCH92s5tne&t=66
     float goldenRatio = (1.0f + sqrtf(5.0f)) / 2.0f;
     float angleStep = 2.0f * (float)M_PI * goldenRatio;
@@ -58,9 +70,9 @@ void TruthCameras::refresh() {
         float angle1 = acosf(1.0f - 2.0f * t);
         float angle2 = angleStep * (float)i;
 
-        locations.emplace_back(sinf(angle1) * cosf(angle2) * distance,
-                               sinf(angle1) * sinf(angle2) * distance,
-                               cosf(angle1) * distance);
+        glm::vec4 loc(sinf(angle1) * cosf(angle2) * distance, sinf(angle1) * sinf(angle2) * distance, cosf(angle1) * distance, 1.0f);
+        loc = rot * loc;
+        locations.emplace_back(loc.x / loc.w, loc.y / loc.w, loc.z / loc.w);
     }
 
     updatedInput = true;

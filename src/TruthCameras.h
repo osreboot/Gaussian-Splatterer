@@ -26,6 +26,7 @@ private:
 
     int count = 8;
     float distance = 2.0f;
+    float rotOffsetX = 0.0f, rotOffsetY = 0.0f;
 
 public:
     int previewPerspective = -1;
@@ -42,9 +43,12 @@ public:
 
     void setCount(int count);
     void setDistance(float distance);
+    void setRotationOffset(float x, float y);
 
     int getCount() const { return count; }
     float getDistance() const { return distance; }
+    float getRotationOffsetX() const { return rotOffsetX; }
+    float getRotationOffsetY() const { return rotOffsetY; }
 
     bool pollInputUpdate();
 
