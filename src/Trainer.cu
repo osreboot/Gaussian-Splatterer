@@ -403,7 +403,7 @@ void Trainer::train(bool densify) {
     cudaMemcpy(avgGradRotations, devAvgGradRotations, model->count * 4 * sizeof(float), cudaMemcpyDeviceToHost);
 
     static const float learningRate = 0.0001f;
-    static const float learningRateRot = 0.00002f;
+    static const float learningRateRot = 0.00004f;
 
     // Apply gradients
     std::unordered_set<int> toSplit, toRemove;
@@ -418,12 +418,12 @@ void Trainer::train(bool densify) {
             model->scales[i * 3 + f] += avgGradScales[i * 3 + f] * learningRate;
             model->scales[i * 3 + f] = std::max(0.0f, model->scales[i * 3 + f]);
         }
-        model->opacities[i] = std::min(1.0f, std::max(0.0f, model->opacities[i] + avgGradOpacities[i] * learningRate));
+        model->opacities[i] = std::min(10000.0f, std::max(0.0f, model->opacities[i] + avgGradOpacities[i] * learningRate));
         for(int f = 0; f < 4; f++) {
             model->rotations[i * 4 + f] += avgGradRotations[i * 4 + f] * learningRateRot;
         }
 
-        if(varLocations[i] > 10.0f) toSplit.insert(i);
+        if(varLocations[i] > 12.0f) toSplit.insert(i);
 
         if(model->opacities[i] <= 0.001f) toRemove.insert(i);
         if(glm::length(glm::vec3(model->scales[i * 3], model->scales[i * 3 + 1], model->scales[i * 3 + 2])) < 0.01f) toRemove.insert(i);

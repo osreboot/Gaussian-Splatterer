@@ -39,10 +39,26 @@ void UiFrame::update() {
     timeLastUpdate = timeNow;
 
     truthCameras->update(delta);
+
+    if(autoTraining) {
+        autoTrainingBudget = min(1.0f, autoTrainingBudget + delta * 10.0f);
+
+        if(autoTrainingBudget >= 1.0f) {
+            autoTrainingBudget = 0.0f;
+            if((trainer->iterations + 1) % 50 == 0) {
+                wxCommandEvent eventFake = wxCommandEvent(wxEVT_NULL, 0);
+                panelTools->onButtonCamerasRotRandom(eventFake);
+                panelTools->onButtonCamerasCapture(eventFake);
+            }
+            trainer->train((trainer->iterations + 1) % 100 == 0);
+            panelTools->updateIterationCount();
+            panelTools->updateSplatCount();
+        }
+    }
 }
 
 void UiFrame::onPaint(wxPaintEvent& event) {
-    if (!IsShown()) return;
+    if(!IsShown()) return;
     update();
 }
 

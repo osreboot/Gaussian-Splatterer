@@ -17,6 +17,8 @@ private:
     wxPanel* panel;
     wxBoxSizer* sizer;
 
+    float autoTrainingBudget = 0.0f;
+
 public:
     TruthCameras* truthCameras;
 
@@ -26,6 +28,8 @@ public:
     UiPanelInput* panelInput;
     UiPanelOutput* panelOutput;
     UiPanelTools* panelTools;
+
+    bool autoTraining = false;
 
     UiFrame();
     ~UiFrame() override;

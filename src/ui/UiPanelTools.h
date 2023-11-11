@@ -22,20 +22,22 @@ private:
     wxStaticText* textCamerasStatus;
 
     wxStaticText* textIterationCount;
+    wxStaticText* textSplatCount;
     wxButton* buttonTrain;
     wxButton* buttonTrain10;
     wxButton* buttonTrain100;
     wxButton* buttonTrainDensify;
-    wxStaticText* textSplatCount;
+    wxButton* buttonTrainAutoStart;
+    wxButton* buttonTrainAutoStop;
 
     wxCheckBox* checkBoxPreviewCamera;
     wxSpinCtrl* spinCtrlPreviewCamera;
 
-    void updateIterationCount();
-    void updateSplatCount();
-
 public:
     UiPanelTools(wxWindow *parent);
+
+    void updateIterationCount();
+    void updateSplatCount();
 
     void onSpinCtrlCamerasCount(wxSpinEvent& event);
     void onSpinCtrlCamerasDistance(wxSpinDoubleEvent& event);
@@ -48,6 +50,8 @@ public:
     void onButtonTrain10(wxCommandEvent& event);
     void onButtonTrain100(wxCommandEvent& event);
     void onButtonTrainDensify(wxCommandEvent& event);
+    void onButtonTrainAutoStart(wxCommandEvent& event);
+    void onButtonTrainAutoStop(wxCommandEvent& event);
 
     void onCheckBoxPreviewCamera(wxCommandEvent& event);
     void onSpinCtrlPreviewCamera(wxSpinEvent& event);

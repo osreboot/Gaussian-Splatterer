@@ -3,17 +3,6 @@
 
 using namespace std;
 
-void UiPanelTools::updateIterationCount() {
-    UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
-    textIterationCount->SetLabel(to_string(frame->trainer->iterations) + " iterations");
-}
-
-void UiPanelTools::updateSplatCount() {
-    UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
-    textSplatCount->SetLabel(to_string(frame->trainer->model->count) + " / " +
-        to_string(frame->trainer->model->capacity) + " splats");
-}
-
 UiPanelTools::UiPanelTools(wxWindow *parent) : wxPanel(parent) {
     UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
 
@@ -90,6 +79,10 @@ UiPanelTools::UiPanelTools(wxWindow *parent) : wxPanel(parent) {
     textIterationCount = new wxStaticText(this, wxID_ANY, to_string(frame->trainer->iterations) + " iterations");
     sizerStaticTrain->Add(textIterationCount, wxSizerFlags().Border());
 
+    textSplatCount = new wxStaticText(this, wxID_ANY, to_string(frame->trainer->model->count) + " / " +
+                                                      to_string(frame->trainer->model->capacity) + " splats");
+    sizerStaticTrain->Add(textSplatCount, wxSizerFlags().Border());
+
     buttonTrain = new wxButton(this, wxID_ANY, "Train (1x)");
     buttonTrain->Bind(wxEVT_COMMAND_BUTTON_CLICKED, &UiPanelTools::onButtonTrain, this);
     buttonTrain->Disable();
@@ -110,10 +103,18 @@ UiPanelTools::UiPanelTools(wxWindow *parent) : wxPanel(parent) {
     buttonTrainDensify->Disable();
     sizerStaticTrain->Add(buttonTrainDensify, wxSizerFlags().Expand().Border());
 
-    textSplatCount = new wxStaticText(this, wxID_ANY, to_string(frame->trainer->model->count) + " / " +
-        to_string(frame->trainer->model->capacity) + " splats");
-    sizerStaticTrain->Add(textSplatCount, wxSizerFlags().Border());
+    auto textButtonTrainAuto = new wxStaticText(this, wxID_ANY, "Auto Train");
+    sizerStaticTrain->Add(textButtonTrainAuto, wxSizerFlags().Border());
 
+    buttonTrainAutoStart = new wxButton(this, wxID_ANY, "Start");
+    buttonTrainAutoStart->Bind(wxEVT_COMMAND_BUTTON_CLICKED, &UiPanelTools::onButtonTrainAutoStart, this);
+    buttonTrainAutoStart->Disable();
+    sizerStaticTrain->Add(buttonTrainAutoStart, wxSizerFlags().Expand().Border());
+
+    buttonTrainAutoStop = new wxButton(this, wxID_ANY, "Stop");
+    buttonTrainAutoStop->Bind(wxEVT_COMMAND_BUTTON_CLICKED, &UiPanelTools::onButtonTrainAutoStop, this);
+    buttonTrainAutoStop->Disable();
+    sizerStaticTrain->Add(buttonTrainAutoStop, wxSizerFlags().Expand().Border());
 
 
 
@@ -137,6 +138,17 @@ UiPanelTools::UiPanelTools(wxWindow *parent) : wxPanel(parent) {
 
 
     SetSizerAndFit(sizer);
+}
+
+void UiPanelTools::updateIterationCount() {
+    UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
+    textIterationCount->SetLabel(to_string(frame->trainer->iterations) + " iterations");
+}
+
+void UiPanelTools::updateSplatCount() {
+    UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
+    textSplatCount->SetLabel(to_string(frame->trainer->model->count) + " / " +
+                             to_string(frame->trainer->model->capacity) + " splats");
 }
 
 void UiPanelTools::onSpinCtrlCamerasCount(wxSpinEvent& event) {
@@ -171,10 +183,13 @@ void UiPanelTools::onButtonCamerasCapture(wxCommandEvent& event) {
     UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
     frame->trainer->captureTruths(*frame->truthCameras, *frame->rtx);
     textCamerasStatus->SetLabel("[ " + to_string(frame->trainer->truthFrameBuffers.size()) + " saved truth frames ]");
-    buttonTrain->Enable();
-    buttonTrain10->Enable();
-    buttonTrain100->Enable();
-    buttonTrainDensify->Enable();
+    if(!frame->autoTraining) {
+        buttonTrain->Enable();
+        buttonTrain10->Enable();
+        buttonTrain100->Enable();
+        buttonTrainDensify->Enable();
+        buttonTrainAutoStart->Enable();
+    }
 }
 
 void UiPanelTools::onButtonTrain(wxCommandEvent& event) {
@@ -199,6 +214,30 @@ void UiPanelTools::onButtonTrainDensify(wxCommandEvent& event) {
     UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
     frame->trainer->train(true);
     updateSplatCount();
+}
+
+void UiPanelTools::onButtonTrainAutoStart(wxCommandEvent& event) {
+    UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
+    frame->autoTraining = true;
+    buttonCamerasCapture->Disable();
+    buttonTrain->Disable();
+    buttonTrain10->Disable();
+    buttonTrain100->Disable();
+    buttonTrainDensify->Disable();
+    buttonTrainAutoStart->Disable();
+    buttonTrainAutoStop->Enable();
+}
+
+void UiPanelTools::onButtonTrainAutoStop(wxCommandEvent& event) {
+    UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
+    frame->autoTraining = false;
+    buttonCamerasCapture->Enable();
+    buttonTrain->Enable();
+    buttonTrain10->Enable();
+    buttonTrain100->Enable();
+    buttonTrainDensify->Enable();
+    buttonTrainAutoStart->Enable();
+    buttonTrainAutoStop->Disable();
 }
 
 void UiPanelTools::onCheckBoxPreviewCamera(wxCommandEvent& event) {
