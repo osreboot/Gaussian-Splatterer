@@ -5,6 +5,15 @@
 
 using namespace owl;
 
+glm::mat4 Camera::getView() const {
+    static const glm::vec3 up(0.0f, 1.0f, 0.0f);
+    return -glm::lookAt(TruthCameras::toGlmVec(location), TruthCameras::toGlmVec(target), up);
+}
+
+glm::mat4 Camera::getProjection() const {
+    return glm::perspective(glm::radians(degFovY), (float)RENDER_RESOLUTION_X / (float)RENDER_RESOLUTION_Y, 0.1f, 100.0f);
+}
+
 glm::vec3 TruthCameras::toGlmVec(const owl::vec3f& owlVec) {
     return {owlVec.x, owlVec.y, owlVec.z};
 }

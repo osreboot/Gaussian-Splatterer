@@ -61,28 +61,15 @@ OPTIX_RAYGEN_PROGRAM(rayGenProgram)() {
     for(int i = 0; i < PROGRAM_SAMPLES; i++){
         // Create ray from camera
         Ray ray;
-        ray.origin = rayGen.camera.location;
+        ray.origin = rayGen.cameraLocation;
 
-        // Optional: link the ray's random seed to the pixel position. This is good for static images, but makes
-        // real-time renders look like there's dirt on the screen.
-        // prd.random.init(pixel.x + self.size.x * i,
-        //                 pixel.y + self.size.y * i);
+        const vec3f viewFarZ = vec3f((pixel.x * 2.0 / rayGen.size.x) - 1.0f, (pixel.y * 2.0 / rayGen.size.y) - 1.0f, 1.0f);
+        vec4f rayFarZ = vec4f(viewFarZ.x * rayGen.cameraMatrix[0] + viewFarZ.y * rayGen.cameraMatrix[4] + viewFarZ.z * rayGen.cameraMatrix[8] + rayGen.cameraMatrix[12],
+                              viewFarZ.x * rayGen.cameraMatrix[1] + viewFarZ.y * rayGen.cameraMatrix[5] + viewFarZ.z * rayGen.cameraMatrix[9] + rayGen.cameraMatrix[13],
+                              viewFarZ.x * rayGen.cameraMatrix[2] + viewFarZ.y * rayGen.cameraMatrix[6] + viewFarZ.z * rayGen.cameraMatrix[10] + rayGen.cameraMatrix[14],
+                              viewFarZ.x * rayGen.cameraMatrix[3] + viewFarZ.y * rayGen.cameraMatrix[7] + viewFarZ.z * rayGen.cameraMatrix[11] + rayGen.cameraMatrix[15]);
 
-        // Set the ray's position and direction based on the current pixel
-        //const vec2f screen = (vec2f(pixel) + vec2f(prd.random(), prd.random()) + vec2f(0.5f)) / vec2f(rayGen.size);
-        //ray.direction = normalize(rayGen.camera.originPixel + screen.u * rayGen.camera.dirRight + screen.v * rayGen.camera.dirUp);
-
-        const vec2f screen2 = (vec2f(pixel) / vec2f(rayGen.size)) * vec2f(2.0f) - vec2f(1.0f);
-        const vec3f screen = vec3f(screen2.x, screen2.y, 1.0f);
-        vec4f rayFarZ = vec4f(screen.x * rayGen.matProjView[0] + screen.y * rayGen.matProjView[1] + screen.z * rayGen.matProjView[2] + rayGen.matProjView[3],
-                              screen.x * rayGen.matProjView[4] + screen.y * rayGen.matProjView[5] + screen.z * rayGen.matProjView[6] + rayGen.matProjView[7],
-                              screen.x * rayGen.matProjView[8] + screen.y * rayGen.matProjView[9] + screen.z * rayGen.matProjView[10] + rayGen.matProjView[11],
-                              screen.x * rayGen.matProjView[12] + screen.y * rayGen.matProjView[13] + screen.z * rayGen.matProjView[14] + rayGen.matProjView[15]);
-        rayFarZ.x = rayFarZ.x / rayFarZ.w;
-        rayFarZ.y = rayFarZ.y / rayFarZ.w;
-        rayFarZ.z = rayFarZ.z / rayFarZ.w;
-
-        ray.direction = normalize(vec3f(rayFarZ.x, rayFarZ.y, rayFarZ.z) - rayGen.camera.location);
+        ray.direction = normalize(vec3f(rayFarZ.x / rayFarZ.w, rayFarZ.y / rayFarZ.w, rayFarZ.z / rayFarZ.w) - rayGen.cameraLocation);
 
         // Trace the ray's path
         vec3f colorOut = tracePath(rayGen, ray, prd) * PROGRAM_EXPOSURE_FACTOR;

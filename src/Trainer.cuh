@@ -16,7 +16,6 @@ private:
     float* devRasterized;
 
     float* devVarLocations;
-    float* devVarOpacities;
     float* devAvgGradLocations;
     float* devAvgGradShs;
     float* devAvgGradScales;
@@ -37,7 +36,6 @@ private:
     float* devGradCov3D;
 
     float* varLocations = nullptr;
-    float* varOpacities = nullptr;
     float* avgGradLocations = nullptr;
     float* avgGradShs = nullptr;
     float* avgGradScales = nullptr;
@@ -66,6 +64,6 @@ public:
     void captureTruths(const TruthCameras& cameras, RtxHost& rtx);
 
     void train(int iterations);
-    void train(bool densify, bool opacityReset);
+    void train(bool densify);
 
 };

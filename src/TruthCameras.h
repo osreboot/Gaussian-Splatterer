@@ -4,6 +4,7 @@
 #include <owl/common/math/vec.h>
 #include <vector>
 #include <diff-gaussian-rasterization/third_party/glm/glm/glm.hpp>
+#include <diff-gaussian-rasterization/third_party/glm/glm/gtc/quaternion.hpp>
 
 #include "Config.h"
 
@@ -13,6 +14,9 @@ struct Camera {
     owl::vec3f target;
 
     float degFovX, degFovY;
+
+    glm::mat4 getView() const;
+    glm::mat4 getProjection() const;
 
 };
 

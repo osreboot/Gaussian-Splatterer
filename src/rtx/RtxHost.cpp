@@ -35,11 +35,8 @@ RtxHost::RtxHost(const owl::vec2i size) : size(size) {
             {"size", OWL_INT2, OWL_OFFSETOF(RayGenerator, size)},
             {"background", OWL_FLOAT3, OWL_OFFSETOF(RayGenerator, background)},
             {"worldHandle", OWL_GROUP, OWL_OFFSETOF(RayGenerator, worldHandle)},
-            {"camera.location", OWL_FLOAT3, OWL_OFFSETOF(RayGenerator, camera.location)},
-            {"camera.originPixel", OWL_FLOAT3, OWL_OFFSETOF(RayGenerator, camera.originPixel)},
-            {"camera.dirRight", OWL_FLOAT3, OWL_OFFSETOF(RayGenerator, camera.dirRight)},
-            {"camera.dirUp", OWL_FLOAT3, OWL_OFFSETOF(RayGenerator, camera.dirUp)},
-            {"matProjView", OWL_BUFPTR, OWL_OFFSETOF(RayGenerator, matProjView)},
+            {"cameraLocation", OWL_FLOAT3, OWL_OFFSETOF(RayGenerator, cameraLocation)},
+            {"cameraMatrix", OWL_BUFPTR, OWL_OFFSETOF(RayGenerator, cameraMatrix)},
             {"splatCamerasCount", OWL_INT, OWL_OFFSETOF(RayGenerator, splatCamerasCount)},
             {"splatCameras", OWL_BUFPTR, OWL_OFFSETOF(RayGenerator, splatCameras)},
             {}
@@ -172,32 +169,13 @@ void RtxHost::render(uint32_t* frameBuffer, const Camera& camera, owl::vec3f bac
     }
 
     if(initialized) {
-        // Calculate camera parameters
-        vec3f cameraDir = normalize(camera.target - camera.location);
-        vec3f cameraDirRight = cos(camera.degFovX * 0.5f * (float)M_PI / 180.0f) * 2.0f * normalize(cross(cameraDir, {0.0f, 1.0f, 0.0f}));
-        vec3f cameraDirUp = cos(camera.degFovY * 0.5f * (float)M_PI / 180.0f) * 2.0f * normalize(cross(cameraDirRight, cameraDir));
-        vec3f cameraOriginPixel = cameraDir - 0.5f * cameraDirRight - 0.5f * cameraDirUp;
-
         // Send camera parameters to the ray tracer
         owlRayGenSet1ul(rayGen, "frameBuffer", (uint64_t)frameBuffer);
         owlRayGenSet2i(rayGen, "size", size.x, size.y);
         owlRayGenSet3f(rayGen, "background", (const owl3f&)background);
-        owlRayGenSet3f(rayGen, "camera.location", (const owl3f&)camera.location);
-        owlRayGenSet3f(rayGen, "camera.originPixel", (const owl3f&)cameraOriginPixel);
-        owlRayGenSet3f(rayGen, "camera.dirRight", (const owl3f&)cameraDirRight);
-        owlRayGenSet3f(rayGen, "camera.dirUp", (const owl3f&)cameraDirUp);
-
-        glm::mat4 matView = -glm::lookAt(TruthCameras::toGlmVec(camera.location),
-                                         TruthCameras::toGlmVec(camera.target), {0.0f, 1.0f, 0.0f});
-
-        glm::mat4 matProjView = glm::perspective(glm::radians(camera.degFovY),
-                                                 (float)RENDER_RESOLUTION_X / (float)RENDER_RESOLUTION_Y, 0.1f, 100.0f) * matView;
-
-        matProjView = glm::inverse(matProjView);
-        matProjView = glm::transpose(matProjView);
-
-        OWLBuffer matProjViewBuffer = owlDeviceBufferCreate(context, OWL_FLOAT, 16, &matProjView[0]);
-        owlRayGenSetBuffer(rayGen, "matProjView", matProjViewBuffer);
+        owlRayGenSet3f(rayGen, "cameraLocation", (const owl3f&)camera.location);
+        glm::mat4 cameraMatrix = glm::inverse(camera.getProjection() * camera.getView());
+        owlRayGenSetBuffer(rayGen, "cameraMatrix", owlDeviceBufferCreate(context, OWL_FLOAT, 16, &cameraMatrix[0]));
 
         // Run ray tracer
         owlBuildSBT(context);

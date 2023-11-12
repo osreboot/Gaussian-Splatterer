@@ -36,18 +36,8 @@ struct RayGenerator {
 
     OptixTraversableHandle worldHandle;
 
-    // The ray tracer projects rays from the camera's 'location' point through the plane specified by:
-    //   originPixel + dirRight * x + dirUp * y
-    // This effectively creates a perspective projection, with zNear and zFar planes determined by the limits of the
-    // ray tracer itself.
-    struct {
-        owl::vec3f location;
-        owl::vec3f originPixel;
-        owl::vec3f dirRight;
-        owl::vec3f dirUp;
-    } camera;
-
-    float* matProjView;
+    owl::vec3f cameraLocation;
+    float* cameraMatrix;
 
     int splatCamerasCount;
     owl::vec3f* splatCameras;

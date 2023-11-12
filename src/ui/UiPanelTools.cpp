@@ -103,11 +103,6 @@ UiPanelTools::UiPanelTools(wxWindow *parent) : wxPanel(parent) {
     buttonTrainDensify->Disable();
     sizerStaticTrain->Add(buttonTrainDensify, wxSizerFlags().Expand().Border());
 
-    buttonTrainOpacityReset = new wxButton(this, wxID_ANY, "Train (Alpha Nuke, 1x)");
-    buttonTrainOpacityReset->Bind(wxEVT_COMMAND_BUTTON_CLICKED, &UiPanelTools::onButtonTrainOpacityReset, this);
-    buttonTrainOpacityReset->Disable();
-    sizerStaticTrain->Add(buttonTrainOpacityReset, wxSizerFlags().Expand().Border());
-
     auto textButtonTrainAuto = new wxStaticText(this, wxID_ANY, "Auto Train");
     sizerStaticTrain->Add(textButtonTrainAuto, wxSizerFlags().Border());
 
@@ -193,7 +188,6 @@ void UiPanelTools::onButtonCamerasCapture(wxCommandEvent& event) {
         buttonTrain10->Enable();
         buttonTrain100->Enable();
         buttonTrainDensify->Enable();
-        buttonTrainOpacityReset->Enable();
         buttonTrainAutoStart->Enable();
     }
 }
@@ -218,14 +212,7 @@ void UiPanelTools::onButtonTrain100(wxCommandEvent& event) {
 
 void UiPanelTools::onButtonTrainDensify(wxCommandEvent& event) {
     UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
-    frame->trainer->train(true, false);
-    updateIterationCount();
-    updateSplatCount();
-}
-
-void UiPanelTools::onButtonTrainOpacityReset(wxCommandEvent& event) {
-    UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
-    frame->trainer->train(true, true);
+    frame->trainer->train(true);
     updateIterationCount();
     updateSplatCount();
 }
@@ -238,7 +225,6 @@ void UiPanelTools::onButtonTrainAutoStart(wxCommandEvent& event) {
     buttonTrain10->Disable();
     buttonTrain100->Disable();
     buttonTrainDensify->Disable();
-    buttonTrainOpacityReset->Disable();
     buttonTrainAutoStart->Disable();
     buttonTrainAutoStop->Enable();
 }
@@ -251,7 +237,6 @@ void UiPanelTools::onButtonTrainAutoStop(wxCommandEvent& event) {
     buttonTrain10->Enable();
     buttonTrain100->Enable();
     buttonTrainDensify->Enable();
-    buttonTrainOpacityReset->Enable();
     buttonTrainAutoStart->Enable();
     buttonTrainAutoStop->Disable();
 }

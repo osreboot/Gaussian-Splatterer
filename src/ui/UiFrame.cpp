@@ -45,12 +45,12 @@ void UiFrame::update() {
 
         if(autoTrainingBudget >= 1.0f) {
             autoTrainingBudget = 0.0f;
-            if((trainer->iterations + 1) % 25 == 0) {
+            if((trainer->iterations + 1) % 50 == 0) {
                 wxCommandEvent eventFake = wxCommandEvent(wxEVT_NULL, 0);
                 panelTools->onButtonCamerasRotRandom(eventFake);
                 panelTools->onButtonCamerasCapture(eventFake);
             }
-            trainer->train((trainer->iterations + 1) % 100 == 0, (trainer->iterations + 1) % 200000 == 0);
+            trainer->train((trainer->iterations + 1) % 200 == 0);
             panelTools->updateIterationCount();
             panelTools->updateSplatCount();
         }
