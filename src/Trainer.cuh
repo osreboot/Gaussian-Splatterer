@@ -16,6 +16,7 @@ private:
     float* devRasterized;
 
     float* devVarLocations;
+    float* devVarOpacities;
     float* devAvgGradLocations;
     float* devAvgGradShs;
     float* devAvgGradScales;
@@ -36,6 +37,7 @@ private:
     float* devGradCov3D;
 
     float* varLocations = nullptr;
+    float* varOpacities = nullptr;
     float* avgGradLocations = nullptr;
     float* avgGradShs = nullptr;
     float* avgGradScales = nullptr;
@@ -45,7 +47,8 @@ private:
 public:
     ModelSplats* model;
 
-    std::vector<uint32_t*> truthFrameBuffers;
+    std::vector<uint32_t*> truthFrameBuffersW;
+    std::vector<uint32_t*> truthFrameBuffersB;
     std::vector<Camera> truthCameras;
 
     int iterations = 0;
@@ -63,6 +66,6 @@ public:
     void captureTruths(const TruthCameras& cameras, RtxHost& rtx);
 
     void train(int iterations);
-    void train(bool densify);
+    void train(bool densify, bool opacityReset);
 
 };

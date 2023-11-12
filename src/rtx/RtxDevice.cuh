@@ -32,6 +32,7 @@ struct WorldGeometry {
 struct RayGenerator {
     uint32_t* frameBuffer;
     owl::vec2i size;
+    owl::vec3f background;
 
     OptixTraversableHandle worldHandle;
 
@@ -45,6 +46,8 @@ struct RayGenerator {
         owl::vec3f dirRight;
         owl::vec3f dirUp;
     } camera;
+
+    float* matProjView;
 
     int splatCamerasCount;
     owl::vec3f* splatCameras;

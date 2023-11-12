@@ -39,7 +39,7 @@ inline __device__ vec3f tracePath(const RayGenerator& rayGen, Ray& ray, PerRayDa
         }
 
         // The ray hit the sky or a light source
-        if(!prd.hitDetected) return i == 0 ? vec3f(0.0f, 0.0f, 0.0f) : attenuation;
+        if(!prd.hitDetected) return i == 0 ? rayGen.background : attenuation;
 
         // Re-initialize the ray based on collision parameters
         ray = Ray(prd.hitOrigin, prd.bounceDirection, 1e-3f, 1e10f);
@@ -69,8 +69,20 @@ OPTIX_RAYGEN_PROGRAM(rayGenProgram)() {
         //                 pixel.y + self.size.y * i);
 
         // Set the ray's position and direction based on the current pixel
-        const vec2f screen = (vec2f(pixel) + vec2f(prd.random(), prd.random()) + vec2f(0.5f)) / vec2f(rayGen.size);
-        ray.direction = normalize(rayGen.camera.originPixel + screen.u * rayGen.camera.dirRight + screen.v * rayGen.camera.dirUp);
+        //const vec2f screen = (vec2f(pixel) + vec2f(prd.random(), prd.random()) + vec2f(0.5f)) / vec2f(rayGen.size);
+        //ray.direction = normalize(rayGen.camera.originPixel + screen.u * rayGen.camera.dirRight + screen.v * rayGen.camera.dirUp);
+
+        const vec2f screen2 = (vec2f(pixel) / vec2f(rayGen.size)) * vec2f(2.0f) - vec2f(1.0f);
+        const vec3f screen = vec3f(screen2.x, screen2.y, 1.0f);
+        vec4f rayFarZ = vec4f(screen.x * rayGen.matProjView[0] + screen.y * rayGen.matProjView[1] + screen.z * rayGen.matProjView[2] + rayGen.matProjView[3],
+                              screen.x * rayGen.matProjView[4] + screen.y * rayGen.matProjView[5] + screen.z * rayGen.matProjView[6] + rayGen.matProjView[7],
+                              screen.x * rayGen.matProjView[8] + screen.y * rayGen.matProjView[9] + screen.z * rayGen.matProjView[10] + rayGen.matProjView[11],
+                              screen.x * rayGen.matProjView[12] + screen.y * rayGen.matProjView[13] + screen.z * rayGen.matProjView[14] + rayGen.matProjView[15]);
+        rayFarZ.x = rayFarZ.x / rayFarZ.w;
+        rayFarZ.y = rayFarZ.y / rayFarZ.w;
+        rayFarZ.z = rayFarZ.z / rayFarZ.w;
+
+        ray.direction = normalize(vec3f(rayFarZ.x, rayFarZ.y, rayFarZ.z) - rayGen.camera.location);
 
         // Trace the ray's path
         vec3f colorOut = tracePath(rayGen, ray, prd) * PROGRAM_EXPOSURE_FACTOR;

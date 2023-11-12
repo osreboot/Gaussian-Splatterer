@@ -3,5 +3,5 @@
 #define RENDER_RESOLUTION_X 1024
 #define RENDER_RESOLUTION_Y 1024
 
-#define RENDER_FOV_X 110.0f
-#define RENDER_FOV_Y 110.0f
+#define RENDER_FOV_X 60.0f
+#define RENDER_FOV_Y 60.0f

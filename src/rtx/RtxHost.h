@@ -24,6 +24,6 @@ public:
 
     void load(const std::string& pathModel, const std::string& pathTexture);
 
-    void render(uint32_t* frameBuffer, const Camera& camera, TruthCameras* cameras);
+    void render(uint32_t* frameBuffer, const Camera& camera, owl::vec3f background, TruthCameras* cameras);
 
 };

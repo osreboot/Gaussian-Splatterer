@@ -33,7 +33,7 @@ ModelSplats::~ModelSplats() {
 
 void ModelSplats::pushBack(glm::vec3 location, std::vector<float> sh, glm::vec3 scale, float opacity, glm::quat rotation) {
     memcpy(&locations[count * 3], &location, 3 * sizeof(float));
-    for(int i  = 0; i < shCoeffs * 3; i++){
+    for (int i  = 0; i < shCoeffs * 3; i++) {
         shs[count * 3 * shCoeffs + i] = sh.at(i);
     }
     memcpy(&scales[count * 3], &scale, 3 * sizeof(float));
@@ -47,7 +47,7 @@ void ModelSplats::copy(int indexTo, int indexFrom) {
     assert(indexTo >= 0 && indexTo < count && indexFrom > 0 && indexFrom < count);
 
     memcpy(&locations[indexTo * 3], &locations[indexFrom * 3], 3 * sizeof(float));
-    for(int i = 0; i < shCoeffs * 3; i++){
+    for (int i = 0; i < shCoeffs * 3; i++) {
         shs[indexTo * 3 * shCoeffs + i] = shs[indexFrom * 3 * shCoeffs + i];
     }
     memcpy(&scales[indexTo * 3], &scales[indexFrom * 3], 3 * sizeof(float));

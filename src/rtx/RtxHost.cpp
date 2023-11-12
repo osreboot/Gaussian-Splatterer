@@ -3,6 +3,8 @@
 
 #include <owl/owl.h>
 #include <stb/stb_image.h>
+#include <diff-gaussian-rasterization/third_party/glm/glm/glm.hpp>
+#include <diff-gaussian-rasterization/third_party/glm/glm/gtc/quaternion.hpp>
 
 #include "RtxHost.h"
 #include "RtxDevice.cuh"
@@ -31,11 +33,13 @@ RtxHost::RtxHost(const owl::vec2i size) : size(size) {
     OWLVarDecl rayGenVars[] = {
             {"frameBuffer", OWL_RAW_POINTER, OWL_OFFSETOF(RayGenerator, frameBuffer)},
             {"size", OWL_INT2, OWL_OFFSETOF(RayGenerator, size)},
+            {"background", OWL_FLOAT3, OWL_OFFSETOF(RayGenerator, background)},
             {"worldHandle", OWL_GROUP, OWL_OFFSETOF(RayGenerator, worldHandle)},
             {"camera.location", OWL_FLOAT3, OWL_OFFSETOF(RayGenerator, camera.location)},
             {"camera.originPixel", OWL_FLOAT3, OWL_OFFSETOF(RayGenerator, camera.originPixel)},
             {"camera.dirRight", OWL_FLOAT3, OWL_OFFSETOF(RayGenerator, camera.dirRight)},
             {"camera.dirUp", OWL_FLOAT3, OWL_OFFSETOF(RayGenerator, camera.dirUp)},
+            {"matProjView", OWL_BUFPTR, OWL_OFFSETOF(RayGenerator, matProjView)},
             {"splatCamerasCount", OWL_INT, OWL_OFFSETOF(RayGenerator, splatCamerasCount)},
             {"splatCameras", OWL_BUFPTR, OWL_OFFSETOF(RayGenerator, splatCameras)},
             {}
@@ -159,7 +163,7 @@ void RtxHost::load(const string& pathModel, const string& pathTexture) {
     initialized = true;
 }
 
-void RtxHost::render(uint32_t* frameBuffer, const Camera& camera, TruthCameras* cameras) {
+void RtxHost::render(uint32_t* frameBuffer, const Camera& camera, owl::vec3f background, TruthCameras* cameras) {
     owlRayGenSet1i(rayGen, "splatCamerasCount", (cameras && cameras->previewPerspective == -1) ? cameras->getCount() : 0);
 
     if (cameras && cameras->pollInputUpdate()) {
@@ -177,10 +181,23 @@ void RtxHost::render(uint32_t* frameBuffer, const Camera& camera, TruthCameras* 
         // Send camera parameters to the ray tracer
         owlRayGenSet1ul(rayGen, "frameBuffer", (uint64_t)frameBuffer);
         owlRayGenSet2i(rayGen, "size", size.x, size.y);
+        owlRayGenSet3f(rayGen, "background", (const owl3f&)background);
         owlRayGenSet3f(rayGen, "camera.location", (const owl3f&)camera.location);
         owlRayGenSet3f(rayGen, "camera.originPixel", (const owl3f&)cameraOriginPixel);
         owlRayGenSet3f(rayGen, "camera.dirRight", (const owl3f&)cameraDirRight);
         owlRayGenSet3f(rayGen, "camera.dirUp", (const owl3f&)cameraDirUp);
+
+        glm::mat4 matView = -glm::lookAt(TruthCameras::toGlmVec(camera.location),
+                                         TruthCameras::toGlmVec(camera.target), {0.0f, 1.0f, 0.0f});
+
+        glm::mat4 matProjView = glm::perspective(glm::radians(camera.degFovY),
+                                                 (float)RENDER_RESOLUTION_X / (float)RENDER_RESOLUTION_Y, 0.1f, 100.0f) * matView;
+
+        matProjView = glm::inverse(matProjView);
+        matProjView = glm::transpose(matProjView);
+
+        OWLBuffer matProjViewBuffer = owlDeviceBufferCreate(context, OWL_FLOAT, 16, &matProjView[0]);
+        owlRayGenSetBuffer(rayGen, "matProjView", matProjViewBuffer);
 
         // Run ray tracer
         owlBuildSBT(context);

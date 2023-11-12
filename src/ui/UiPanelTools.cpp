@@ -30,7 +30,7 @@ UiPanelTools::UiPanelTools(wxWindow *parent) : wxPanel(parent) {
     auto textCtrlCamerasDistance = new wxStaticText(this, wxID_ANY, "Perspective Distance");
     sizerStaticTruth->Add(textCtrlCamerasDistance, wxSizerFlags().Border(wxUP | wxLEFT | wxRIGHT));
     spinCtrlCamerasDistance = new wxSpinCtrlDouble(this);
-    spinCtrlCamerasDistance->SetRange(0.1, 20.0);
+    spinCtrlCamerasDistance->SetRange(0.1, 40.0);
     spinCtrlCamerasDistance->SetDigits(2);
     spinCtrlCamerasDistance->SetIncrement(0.1);
     spinCtrlCamerasDistance->SetValue(frame->truthCameras->getDistance());
@@ -102,6 +102,11 @@ UiPanelTools::UiPanelTools(wxWindow *parent) : wxPanel(parent) {
     buttonTrainDensify->Bind(wxEVT_COMMAND_BUTTON_CLICKED, &UiPanelTools::onButtonTrainDensify, this);
     buttonTrainDensify->Disable();
     sizerStaticTrain->Add(buttonTrainDensify, wxSizerFlags().Expand().Border());
+
+    buttonTrainOpacityReset = new wxButton(this, wxID_ANY, "Train (Alpha Nuke, 1x)");
+    buttonTrainOpacityReset->Bind(wxEVT_COMMAND_BUTTON_CLICKED, &UiPanelTools::onButtonTrainOpacityReset, this);
+    buttonTrainOpacityReset->Disable();
+    sizerStaticTrain->Add(buttonTrainOpacityReset, wxSizerFlags().Expand().Border());
 
     auto textButtonTrainAuto = new wxStaticText(this, wxID_ANY, "Auto Train");
     sizerStaticTrain->Add(textButtonTrainAuto, wxSizerFlags().Border());
@@ -182,19 +187,20 @@ void UiPanelTools::onButtonCamerasRotRandom(wxCommandEvent& event) {
 void UiPanelTools::onButtonCamerasCapture(wxCommandEvent& event) {
     UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
     frame->trainer->captureTruths(*frame->truthCameras, *frame->rtx);
-    textCamerasStatus->SetLabel("[ " + to_string(frame->trainer->truthFrameBuffers.size()) + " saved truth frames ]");
+    textCamerasStatus->SetLabel("[ " + to_string(frame->trainer->truthFrameBuffersW.size()) + " (x2) saved truth frames ]");
     if(!frame->autoTraining) {
         buttonTrain->Enable();
         buttonTrain10->Enable();
         buttonTrain100->Enable();
         buttonTrainDensify->Enable();
+        buttonTrainOpacityReset->Enable();
         buttonTrainAutoStart->Enable();
     }
 }
 
 void UiPanelTools::onButtonTrain(wxCommandEvent& event) {
     UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
-    frame->trainer->train(false);
+    frame->trainer->train(1);
     updateIterationCount();
 }
 
@@ -212,7 +218,15 @@ void UiPanelTools::onButtonTrain100(wxCommandEvent& event) {
 
 void UiPanelTools::onButtonTrainDensify(wxCommandEvent& event) {
     UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
-    frame->trainer->train(true);
+    frame->trainer->train(true, false);
+    updateIterationCount();
+    updateSplatCount();
+}
+
+void UiPanelTools::onButtonTrainOpacityReset(wxCommandEvent& event) {
+    UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
+    frame->trainer->train(true, true);
+    updateIterationCount();
     updateSplatCount();
 }
 
@@ -224,6 +238,7 @@ void UiPanelTools::onButtonTrainAutoStart(wxCommandEvent& event) {
     buttonTrain10->Disable();
     buttonTrain100->Disable();
     buttonTrainDensify->Disable();
+    buttonTrainOpacityReset->Disable();
     buttonTrainAutoStart->Disable();
     buttonTrainAutoStop->Enable();
 }
@@ -236,6 +251,7 @@ void UiPanelTools::onButtonTrainAutoStop(wxCommandEvent& event) {
     buttonTrain10->Enable();
     buttonTrain100->Enable();
     buttonTrainDensify->Enable();
+    buttonTrainOpacityReset->Enable();
     buttonTrainAutoStart->Enable();
     buttonTrainAutoStop->Disable();
 }

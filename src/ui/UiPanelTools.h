@@ -27,6 +27,7 @@ private:
     wxButton* buttonTrain10;
     wxButton* buttonTrain100;
     wxButton* buttonTrainDensify;
+    wxButton* buttonTrainOpacityReset;
     wxButton* buttonTrainAutoStart;
     wxButton* buttonTrainAutoStop;
 
@@ -50,6 +51,7 @@ public:
     void onButtonTrain10(wxCommandEvent& event);
     void onButtonTrain100(wxCommandEvent& event);
     void onButtonTrainDensify(wxCommandEvent& event);
+    void onButtonTrainOpacityReset(wxCommandEvent& event);
     void onButtonTrainAutoStart(wxCommandEvent& event);
     void onButtonTrainAutoStop(wxCommandEvent& event);
 

@@ -24,8 +24,8 @@ public:
 private:
     bool updatedInput = false;
 
-    int count = 8;
-    float distance = 2.0f;
+    int count = 32;
+    float distance = 12.0f;
     float rotOffsetX = 0.0f, rotOffsetY = 0.0f;
 
 public:
