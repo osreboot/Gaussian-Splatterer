@@ -1,8 +1,10 @@
 target_sources(${PROJECT_NAME} PRIVATE
         Main.cpp
         Config.h
-        ModelSplats.cpp
-        ModelSplats.h
+        ModelSplatsDevice.cpp
+        ModelSplatsDevice.h
+        ModelSplatsHost.cpp
+        ModelSplatsHost.h
         StbImpl.cpp
         Trainer.cu
         Trainer.cuh

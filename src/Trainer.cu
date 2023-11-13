@@ -6,11 +6,12 @@
 
 #include "Trainer.cuh"
 #include "TruthCameras.h"
+#include "ModelSplatsHost.h"
 
 #include <rasterizer.h>
 #include <diff-gaussian-rasterization/third_party/glm/glm/gtc/type_ptr.hpp>
 
-__global__ void convertIntKernel(const float* source, uint32_t* frameBuffer, int step, int w, int h) {
+__global__ void imageFloatToInt(const float* source, uint32_t* frameBuffer, const int step, const int w, const int h) {
     for(int i = blockIdx.x * blockDim.x + threadIdx.x; i < w * h; i += step){
         int x = i % w;
         int y = i / w;
@@ -22,7 +23,7 @@ __global__ void convertIntKernel(const float* source, uint32_t* frameBuffer, int
     }
 }
 
-__global__ void lossKernel(const uint32_t* truth, const float* rasterized, float* loss, int step, int w, int h) {
+__global__ void imageIntToLoss(const uint32_t* truth, const float* rasterized, float* loss, const int step, const int w, const int h) {
     for(int i = blockIdx.x * blockDim.x + threadIdx.x; i < w * h; i += step){
         int x = i % w;
         int y = i / w;
@@ -35,9 +36,9 @@ __global__ void lossKernel(const uint32_t* truth, const float* rasterized, float
     }
 }
 
-__global__ void gradientSumKernel(float* avgLocations, float* avgShs, float* avgScales, float* avgOpacities, float* avgRotations,
-                                      const float* locations, const float* shs, const float* scales, const float* opacities, const float* rotations,
-                                      float samples, int shCoeffs, int step, int n) {
+__global__ void accumulateGradients(float* avgLocations, float* avgShs, float* avgScales, float* avgOpacities, float* avgRotations,
+                                    const float* locations, const float* shs, const float* scales, const float* opacities, const float* rotations,
+                                    const float samples, const int shCoeffs, const int step, const int n) {
     for(int i = blockIdx.x * blockDim.x + threadIdx.x; i < n; i += step){
         avgLocations[i * 3] += locations[i * 3] / samples;
         avgLocations[i * 3 + 1] += locations[i * 3 + 1] / samples;
@@ -62,11 +63,107 @@ __global__ void gradientSumKernel(float* avgLocations, float* avgShs, float* avg
     }
 }
 
-__global__ void locationVarianceKernel(float* varLocations, const float* gradLocations, float samples, int step, int n) {
+__global__ void accumulateVariance(float* varLocations, const float* gradLocations, const float samples, const int step, const int n) {
     for(int i = blockIdx.x * blockDim.x + threadIdx.x; i < n; i += step){
         varLocations[i] += sqrtf((gradLocations[i * 3] * gradLocations[i * 3]) +
                                  (gradLocations[i * 3 + 1] * gradLocations[i * 3 + 1]) +
                                  (gradLocations[i * 3 + 2] * gradLocations[i * 3 + 2])) / samples;
+    }
+}
+
+__device__ float length(float x, float y, float z) {
+    return sqrt(x * x + y * y + z * z);
+}
+
+__global__ void applyGradients(float* locations, float* shs, float* scales, float* opacities, float* rotations,
+                               const float* gradLocations, const float* gradShs, const float* gradScales, const float* gradOpacities, const float* gradRotations,
+                               const float* varLocations,
+                               const float lr, const float lrSh, const float lrOpacity, const float lrRotation,
+                               int* flexIndices, int shCoeffs, const int step, const int count) {
+    for(int i = blockIdx.x * blockDim.x + threadIdx.x; i < count; i += step){
+        for(int f = 0; f < 3; f++) {
+            locations[i * 3 + f] += gradLocations[i * 3 + f] * lr;
+        }
+        for(int f  = 0; f < shCoeffs * 3; f++) {
+            shs[i * 3 * shCoeffs + f] += gradShs[i * 3 * shCoeffs + f] * lrSh;
+        }
+        for(int f = 0; f < 3; f++) {
+            scales[i * 3 + f] += gradScales[i * 3 + f] * lr;
+            scales[i * 3 + f] = min(0.3f, max(0.0f, scales[i * 3 + f]));
+        }
+        opacities[i] = min(1.0f, max(0.0f, opacities[i] + gradOpacities[i] * lrOpacity));
+        for(int f = 0; f < 4; f++) {
+            rotations[i * 4 + f] += gradRotations[i * 4 + f] * lrRotation;
+        }
+
+        if (flexIndices) {
+            flexIndices[i] = 0;
+            if (opacities[i] <= 0.005f || length(scales[i * 3], scales[i * 3 + 1], scales[i * 3 + 2]) < 0.0001f) {
+                flexIndices[i] = -1; // delete splat
+            } else if (varLocations[i] > 2.0f) flexIndices[i] = 1; // split/clone splat
+        }
+    }
+}
+
+__global__ void flexBlockOffsets(int* flexIndices, int* flexSizes, const int step, const int count) {
+    for(int t = blockIdx.x * blockDim.x + threadIdx.x; t <= count / 256; t += step){
+        int size = 0;
+        for(int i = t * 256; i < min((t + 1) * 256, count); i++) {
+            int old = flexIndices[i];
+            flexIndices[i] = old == -1 ? -1 : size;
+            size += old + 1;
+        }
+        flexSizes[t] = size;
+    }
+}
+
+__global__ void flexBlockAccumulate(int* flexSizes, const int count, int* countUpdated) {
+    if (blockIdx.x * blockDim.x + threadIdx.x == 0) {
+        int last = flexSizes[0];
+        flexSizes[0] = 0;
+        for(int i = 1; i <= count / 256; i++) {
+            int original = flexSizes[i];
+            flexSizes[i] = last;
+            last += original;
+        }
+        *countUpdated = last;
+    }
+}
+
+__global__ void applyDensify(float* toLocations, float* toShs, float* toScales, float* toOpacities, float* toRotations,
+                             const float* fromLocations, const float* fromShs, const float* fromScales, const float* fromOpacities, const float* fromRotations,
+                             const float* gradLocations, const float lr,
+                             const int* flexIndices, const int* flexSizes, const int shCoeffs, const int step, const int count) {
+    for(int i = blockIdx.x * blockDim.x + threadIdx.x; i < count; i += step){
+        if (flexIndices[i] != -1) { // if the splat hasn't been removed
+
+            //if (length(scales[i * 3], scales[i * 3 + 1], scales[i * 3 + 2]) > 0.02f) split
+            //else clone
+
+            int t1 = flexIndices[i] + flexSizes[i / 256];
+            int t2 = flexIndices[i] + flexSizes[i / 256] + 1;
+
+            // TODO determine new positions here
+
+            for(int f = 0; f < 3; f++){
+                toLocations[t1 * 3 + f] = fromLocations[i * 3 + f];
+                toLocations[t2 * 3 + f] = fromLocations[i * 3 + f] + (gradLocations[i * 3 + f] * lr);
+            }
+            for(int f = 0; f < 3 * shCoeffs; f++){
+                toShs[t1 * 3 * shCoeffs + f] = fromShs[i * 3 * shCoeffs + f];
+                toShs[t2 * 3 * shCoeffs + f] = fromShs[i * 3 * shCoeffs + f];
+            }
+            for(int f = 0; f < 3; f++){
+                toScales[t1 * 3 + f] = fromScales[i * 3 + f];
+                toScales[t2 * 3 + f] = fromScales[i * 3 + f];
+            }
+            toOpacities[t1] = fromOpacities[i];
+            toOpacities[t2] = fromOpacities[i];
+            for(int f = 0; f < 4; f++){
+                toRotations[t1 * 4 + f] = fromRotations[i * 4 + f];
+                toRotations[t2 * 4 + f] = fromRotations[i * 4 + f];
+            }
+        }
     }
 }
 
@@ -78,7 +175,7 @@ Trainer::Trainer() {
     cudaMalloc(&devRasterized, RENDER_RESOLUTION_X * RENDER_RESOLUTION_Y * 3 * sizeof(float));
 
     // Scene-sized cube initialization
-    model = new ModelSplats(1000000, 1, 4);
+    ModelSplatsHost modelHost(1000000, 1, 4);
 
     static const float dim = 4.0f;
     static const float step = 0.5f;
@@ -86,16 +183,18 @@ Trainer::Trainer() {
     for(float x = -dim; x <= dim; x += step){
         for(float y = -dim; y <= dim; y += step){
             for(float z = -dim; z <= dim; z += step){
-                model->pushBack({x, y, z}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}, {step * 0.1f, step * 0.1f, step * 0.1f},
+                modelHost.pushBack({x, y, z}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}, {step * 0.1f, step * 0.1f, step * 0.1f},
                                 1.0f, glm::angleAxis(0.0f, glm::vec3(0.0f, 1.0f, 0.0f)));
-                //model->pushBack({x, y, z}, {0.0f, 0.0f, 0.0f}, {step * 0.1f, step * 0.1f, step * 0.1f},
+                //modelHost.pushBack({x, y, z}, {0.0f, 0.0f, 0.0f}, {step * 0.1f, step * 0.1f, step * 0.1f},
                 //                1.0f, glm::angleAxis(0.0f, glm::vec3(0.0f, 1.0f, 0.0f)));
             }
         }
     }
 
-    //model->pushBack({0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}, {0.1f, 0.1f, 0.3f},
+    //modelHost.pushBack({0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}, {0.1f, 0.1f, 0.3f},
     //                1.0f, glm::angleAxis(45.0f, glm::vec3(0.0f, 1.0f, 0.0f)));
+
+    model = new ModelSplatsDevice(modelHost);
 }
 
 Trainer::~Trainer() {
@@ -125,12 +224,8 @@ Trainer::~Trainer() {
     cudaFree(devGradColor);
     cudaFree(devGradCov3D);
 
-    delete[] varLocations;
-    delete[] avgGradLocations;
-    delete[] avgGradShs;
-    delete[] avgGradScales;
-    delete[] avgGradOpacities;
-    delete[] avgGradRotations;
+    cudaFree(devFlexIndices);
+    cudaFree(devFlexSizes);
 
     delete model;
 
@@ -139,17 +234,12 @@ Trainer::~Trainer() {
 }
 
 void Trainer::render(uint32_t* frameBuffer, const Camera& camera) {
-    model->deviceBuffer();
-
     std::vector<float> background = {0.0f, 0.0f, 0.0f};
     cudaMemcpy(devBackground, background.data(), 3 * sizeof(float), cudaMemcpyHostToDevice);
 
-    glm::mat4 matView = -glm::lookAt(TruthCameras::toGlmVec(camera.location),
-                                     TruthCameras::toGlmVec(camera.target), {0.0f, 1.0f, 0.0f});
+    glm::mat4 matView = camera.getView();
+    glm::mat4 matProjView = camera.getProjection() * matView;
     cudaMemcpy(devMatView, glm::value_ptr(matView), 16 * sizeof(float), cudaMemcpyHostToDevice);
-
-    glm::mat4 matProjView = glm::perspective(glm::radians(camera.degFovY),
-                                             (float)RENDER_RESOLUTION_X / (float)RENDER_RESOLUTION_Y, 0.1f, 100.0f) * matView;
     cudaMemcpy(devMatProjView, glm::value_ptr(matProjView), 16 * sizeof(float), cudaMemcpyHostToDevice);
 
     cudaMemcpy(devCameraLocation, &camera.location[0], 3 * sizeof(float), cudaMemcpyHostToDevice);
@@ -186,7 +276,7 @@ void Trainer::render(uint32_t* frameBuffer, const Camera& camera) {
             nullptr,
             true);
 
-    convertIntKernel<<<256, 256>>>(devRasterized, frameBuffer, 256 * 256, RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y);
+    imageFloatToInt<<<256, 256>>>(devRasterized, frameBuffer, 256 * 256, RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y);
 
     cudaFree(geomBuffer);
     cudaFree(binningBuffer);
@@ -226,12 +316,7 @@ void Trainer::train(bool densify) {
 
     iterations++;
 
-    model->deviceBuffer();
-
-    bool dirty = model->count != lastCount;
-    lastCount = model->count;
-
-    if(dirty) {
+    if (model->count != lastCount) {
         cudaFree(devVarLocations);
         cudaFree(devAvgGradLocations);
         cudaFree(devAvgGradShs);
@@ -251,13 +336,6 @@ void Trainer::train(bool densify) {
         cudaFree(devGradConic);
         cudaFree(devGradColor);
         cudaFree(devGradCov3D);
-
-        delete[] varLocations;
-        delete[] avgGradLocations;
-        delete[] avgGradShs;
-        delete[] avgGradScales;
-        delete[] avgGradOpacities;
-        delete[] avgGradRotations;
 
         cudaMalloc(&devVarLocations, model->count * sizeof(float));
         cudaMalloc(&devAvgGradLocations, model->count * 3 * sizeof(float));
@@ -279,12 +357,17 @@ void Trainer::train(bool densify) {
         cudaMalloc(&devGradColor, model->count * 3 * sizeof(float));
         cudaMalloc(&devGradCov3D, model->count * 6 * sizeof(float));
 
-        varLocations = new float[model->count];
-        avgGradLocations = new float[model->count * 3];
-        avgGradShs = new float[model->count * 3 * model->shCoeffs];
-        avgGradScales = new float[model->count * 3];
-        avgGradOpacities = new float[model->count];
-        avgGradRotations = new float[model->count * 4];
+        lastCount = model->count;
+    }
+
+    if (lastCapacity != model->capacity) {
+        cudaFree(devFlexIndices);
+        cudaMalloc(&devFlexIndices, model->capacity * sizeof(int));
+
+        cudaFree(devFlexSizes);
+        cudaMalloc(&devFlexSizes, ((model->capacity / 256) + 1) * sizeof(int));
+
+        lastCapacity = model->capacity;
     }
 
     cudaMemset(devVarLocations, 0, model->count * sizeof(float));
@@ -342,7 +425,7 @@ void Trainer::train(bool densify) {
                 nullptr,
                 true);
 
-        lossKernel<<<256, 256>>>(truthFrameBuffer, devRasterized, devLossPixels, 256 * 256, RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y);
+        imageIntToLoss<<<256, 256>>>(truthFrameBuffer, devRasterized, devLossPixels, 256 * 256, RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y);
 
         cudaMemset(devGradLocations, 0, model->count * 3 * sizeof(float));
         cudaMemset(devGradShs, 0, model->count * 3 * model->shCoeffs * sizeof(float));
@@ -391,55 +474,54 @@ void Trainer::train(bool densify) {
                 devGradRotations,
                 true);
 
-        gradientSumKernel<<<256, 256>>>(devAvgGradLocations, devAvgGradShs, devAvgGradScales, devAvgGradOpacities, devAvgGradRotations,
-                                        devGradLocations, devGradShs, devGradScales, devGradOpacities, devGradRotations,
-                                        (float)truthFrameBuffersW.size() * 2.0f, model->shCoeffs, 256 * 256, model->count);
+        accumulateGradients<<<256, 256>>>(devAvgGradLocations, devAvgGradShs, devAvgGradScales, devAvgGradOpacities,
+                                          devAvgGradRotations,
+                                          devGradLocations, devGradShs, devGradScales, devGradOpacities, devGradRotations,
+                                          (float)truthFrameBuffersW.size() * 2.0f, model->shCoeffs, 256 * 256, model->count);
 
-        locationVarianceKernel<<<256, 256>>>(devVarLocations, devGradLocations, (float)truthFrameBuffersW.size() * 2.0f, 256 * 256, model->count);
+        accumulateVariance<<<256, 256>>>(devVarLocations, devGradLocations, (float)truthFrameBuffersW.size() * 2.0f,
+                                       256 * 256, model->count);
 
         cudaFree(geomBuffer);
         cudaFree(binningBuffer);
         cudaFree(imgBuffer);
     }
 
-    cudaMemcpy(varLocations, devVarLocations, model->count * sizeof(float), cudaMemcpyDeviceToHost);
-    cudaMemcpy(avgGradLocations, devAvgGradLocations, model->count * 3 * sizeof(float), cudaMemcpyDeviceToHost);
-    cudaMemcpy(avgGradShs, devAvgGradShs, model->count * 3 * model->shCoeffs * sizeof(float), cudaMemcpyDeviceToHost);
-    cudaMemcpy(avgGradScales, devAvgGradScales, model->count * 3 * sizeof(float), cudaMemcpyDeviceToHost);
-    cudaMemcpy(avgGradOpacities, devAvgGradOpacities, model->count * sizeof(float), cudaMemcpyDeviceToHost);
-    cudaMemcpy(avgGradRotations, devAvgGradRotations, model->count * 4 * sizeof(float), cudaMemcpyDeviceToHost);
-
     static const float learningRate = 0.00005f;
     static const float learningRateShs = learningRate * 2.0f;
     static const float learningRateOpacity = learningRate * 2.0f;
     static const float learningRateRotation = learningRate / 2.0f;
 
-    // Apply gradients
-    std::unordered_set<int> toSplit, toClone, toRemove;
-    for(int i = 0; i < model->count; i++) {
-        for(int f = 0; f < 3; f++) {
-            model->locations[i * 3 + f] += avgGradLocations[i * 3 + f] * learningRate;
-        }
-        for(int f  = 0; f < model->shCoeffs * 3; f++) {
-            model->shs[i * 3 * model->shCoeffs + f] += avgGradShs[i * 3 * model->shCoeffs + f] * learningRateShs;
-        }
-        for(int f = 0; f < 3; f++) {
-            model->scales[i * 3 + f] += avgGradScales[i * 3 + f] * learningRate;
-            model->scales[i * 3 + f] = std::min(0.3f, std::max(0.0f, model->scales[i * 3 + f]));
-        }
-        model->opacities[i] = std::min(1.0f, std::max(0.0f, model->opacities[i] + avgGradOpacities[i] * learningRateOpacity));
-        for(int f = 0; f < 4; f++) {
-            model->rotations[i * 4 + f] += avgGradRotations[i * 4 + f] * learningRateRotation;
-        }
+    applyGradients<<<256, 256>>>(model->devLocations, model->devShs, model->devScales, model->devOpacities, model->devRotations,
+                                 devAvgGradLocations, devAvgGradShs, devAvgGradScales, devAvgGradOpacities, devAvgGradRotations,
+                                 devVarLocations,
+                                 learningRate, learningRateShs, learningRateOpacity, learningRateRotation,
+                                 densify ? devFlexIndices : nullptr, model->shCoeffs, 256 * 256, model->count);
 
-        if (model->opacities[i] <= 0.005f || glm::length(glm::vec3(model->scales[i * 3], model->scales[i * 3 + 1], model->scales[i * 3 + 2])) < 0.0001f) {
-            toRemove.insert(i);
-        } else if (varLocations[i] > 2.0f) {
-            if (glm::length(glm::vec3(model->scales[i * 3], model->scales[i * 3 + 1], model->scales[i * 3 + 2])) > 0.02f) toSplit.insert(i);
-            else toClone.insert(i);
-        }
+    if (densify) {
+        flexBlockOffsets<<<256, 1>>>(devFlexIndices, devFlexSizes, 256, model->count);
+
+        int* devCountUpdated;
+        cudaMalloc(&devCountUpdated, sizeof(int));
+        flexBlockAccumulate<<<1, 1>>>(devFlexSizes, model->count, devCountUpdated);
+        int* countUpdated = new int;
+        cudaMemcpy(countUpdated, devCountUpdated, sizeof(int), cudaMemcpyDeviceToHost);
+        //wxLogMessage(wxString(std::to_string(*countUpdated)));
+
+        ModelSplatsDevice* model2 = new ModelSplatsDevice(*model);
+        model2->count = std::min(*countUpdated, model2->capacity);
+        delete countUpdated;
+
+        applyDensify<<<256, 256>>>(model2->devLocations, model2->devShs, model2->devScales, model2->devOpacities, model2->devRotations,
+                                   model->devLocations, model->devShs, model->devScales, model->devOpacities, model->devRotations,
+                                   devAvgGradLocations, learningRate,
+                                   devFlexIndices, devFlexSizes, model->shCoeffs, 256 * 256, model->count);
+
+        delete model;
+        model = model2;
     }
 
+    /*
     if(densify) {
         for (int i : toSplit) {
             if (model->count < model->capacity) {
@@ -502,5 +584,5 @@ void Trainer::train(bool densify) {
             }
             model->count -= (int)toRemove.size();
         }
-    }
+    }*/
 }

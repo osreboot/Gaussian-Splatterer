@@ -41,7 +41,7 @@ void UiFrame::update() {
     truthCameras->update(delta);
 
     if(autoTraining) {
-        autoTrainingBudget = min(1.0f, autoTrainingBudget + delta * 10.0f);
+        autoTrainingBudget = min(1.0f, autoTrainingBudget + delta * 100.0f);
 
         if(autoTrainingBudget >= 1.0f) {
             autoTrainingBudget = 0.0f;

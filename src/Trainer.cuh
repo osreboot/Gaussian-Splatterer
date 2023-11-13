@@ -1,13 +1,14 @@
 #pragma once
 
 #include "TruthCameras.h"
-#include "ModelSplats.h"
+#include "ModelSplatsDevice.h"
 #include "rtx/RtxHost.h"
 
 class Trainer {
 
 private:
     int lastCount = -1;
+    int lastCapacity = -1;
 
     float* devBackground;
     float* devMatView;
@@ -35,15 +36,11 @@ private:
     float* devGradColor;
     float* devGradCov3D;
 
-    float* varLocations = nullptr;
-    float* avgGradLocations = nullptr;
-    float* avgGradShs = nullptr;
-    float* avgGradScales = nullptr;
-    float* avgGradOpacities = nullptr;
-    float* avgGradRotations = nullptr;
+    int* devFlexIndices;
+    int* devFlexSizes;
 
 public:
-    ModelSplats* model;
+    ModelSplatsDevice* model;
 
     std::vector<uint32_t*> truthFrameBuffersW;
     std::vector<uint32_t*> truthFrameBuffersB;
@@ -52,6 +49,7 @@ public:
     int iterations = 0;
 
     Trainer();
+
     Trainer(const Trainer&) = delete;
     Trainer& operator=(const Trainer&) = delete;
     Trainer(Trainer&&) = delete;
