@@ -31,5 +31,6 @@ public:
     ~ModelSplatsHost();
 
     void pushBack(glm::vec3 location, std::vector<float> sh, glm::vec3 scale, float opacity, glm::quat rotation);
+    void copy(int indexTo, int indexFrom);
 
 };

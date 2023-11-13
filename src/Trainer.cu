@@ -71,15 +71,10 @@ __global__ void accumulateVariance(float* varLocations, const float* gradLocatio
     }
 }
 
-__device__ float length(float x, float y, float z) {
-    return sqrt(x * x + y * y + z * z);
-}
-
 __global__ void applyGradients(float* locations, float* shs, float* scales, float* opacities, float* rotations,
                                const float* gradLocations, const float* gradShs, const float* gradScales, const float* gradOpacities, const float* gradRotations,
-                               const float* varLocations,
                                const float lr, const float lrSh, const float lrOpacity, const float lrRotation,
-                               int* flexIndices, int shCoeffs, const int step, const int count) {
+                               const int shCoeffs, const int step, const int count) {
     for(int i = blockIdx.x * blockDim.x + threadIdx.x; i < count; i += step){
         for(int f = 0; f < 3; f++) {
             locations[i * 3 + f] += gradLocations[i * 3 + f] * lr;
@@ -94,75 +89,6 @@ __global__ void applyGradients(float* locations, float* shs, float* scales, floa
         opacities[i] = min(1.0f, max(0.0f, opacities[i] + gradOpacities[i] * lrOpacity));
         for(int f = 0; f < 4; f++) {
             rotations[i * 4 + f] += gradRotations[i * 4 + f] * lrRotation;
-        }
-
-        if (flexIndices) {
-            flexIndices[i] = 0;
-            if (opacities[i] <= 0.005f || length(scales[i * 3], scales[i * 3 + 1], scales[i * 3 + 2]) < 0.0001f) {
-                flexIndices[i] = -1; // delete splat
-            } else if (varLocations[i] > 2.0f) flexIndices[i] = 1; // split/clone splat
-        }
-    }
-}
-
-__global__ void flexBlockOffsets(int* flexIndices, int* flexSizes, const int step, const int count) {
-    for(int t = blockIdx.x * blockDim.x + threadIdx.x; t <= count / 256; t += step){
-        int size = 0;
-        for(int i = t * 256; i < min((t + 1) * 256, count); i++) {
-            int old = flexIndices[i];
-            flexIndices[i] = old == -1 ? -1 : size;
-            size += old + 1;
-        }
-        flexSizes[t] = size;
-    }
-}
-
-__global__ void flexBlockAccumulate(int* flexSizes, const int count, int* countUpdated) {
-    if (blockIdx.x * blockDim.x + threadIdx.x == 0) {
-        int last = flexSizes[0];
-        flexSizes[0] = 0;
-        for(int i = 1; i <= count / 256; i++) {
-            int original = flexSizes[i];
-            flexSizes[i] = last;
-            last += original;
-        }
-        *countUpdated = last;
-    }
-}
-
-__global__ void applyDensify(float* toLocations, float* toShs, float* toScales, float* toOpacities, float* toRotations,
-                             const float* fromLocations, const float* fromShs, const float* fromScales, const float* fromOpacities, const float* fromRotations,
-                             const float* gradLocations, const float lr,
-                             const int* flexIndices, const int* flexSizes, const int shCoeffs, const int step, const int count) {
-    for(int i = blockIdx.x * blockDim.x + threadIdx.x; i < count; i += step){
-        if (flexIndices[i] != -1) { // if the splat hasn't been removed
-
-            //if (length(scales[i * 3], scales[i * 3 + 1], scales[i * 3 + 2]) > 0.02f) split
-            //else clone
-
-            int t1 = flexIndices[i] + flexSizes[i / 256];
-            int t2 = flexIndices[i] + flexSizes[i / 256] + 1;
-
-            // TODO determine new positions here
-
-            for(int f = 0; f < 3; f++){
-                toLocations[t1 * 3 + f] = fromLocations[i * 3 + f];
-                toLocations[t2 * 3 + f] = fromLocations[i * 3 + f] + (gradLocations[i * 3 + f] * lr);
-            }
-            for(int f = 0; f < 3 * shCoeffs; f++){
-                toShs[t1 * 3 * shCoeffs + f] = fromShs[i * 3 * shCoeffs + f];
-                toShs[t2 * 3 * shCoeffs + f] = fromShs[i * 3 * shCoeffs + f];
-            }
-            for(int f = 0; f < 3; f++){
-                toScales[t1 * 3 + f] = fromScales[i * 3 + f];
-                toScales[t2 * 3 + f] = fromScales[i * 3 + f];
-            }
-            toOpacities[t1] = fromOpacities[i];
-            toOpacities[t2] = fromOpacities[i];
-            for(int f = 0; f < 4; f++){
-                toRotations[t1 * 4 + f] = fromRotations[i * 4 + f];
-                toRotations[t2 * 4 + f] = fromRotations[i * 4 + f];
-            }
         }
     }
 }
@@ -224,9 +150,6 @@ Trainer::~Trainer() {
     cudaFree(devGradColor);
     cudaFree(devGradCov3D);
 
-    cudaFree(devFlexIndices);
-    cudaFree(devFlexSizes);
-
     delete model;
 
     for (uint32_t* frameBuffer : truthFrameBuffersW) cudaFree(frameBuffer);
@@ -284,26 +207,38 @@ void Trainer::render(uint32_t* frameBuffer, const Camera& camera) {
 }
 
 void Trainer::captureTruths(const TruthCameras& cameras, RtxHost& rtx) {
-    for (uint32_t* frameBuffer : truthFrameBuffersW) cudaFree(frameBuffer);
-    for (uint32_t* frameBuffer : truthFrameBuffersB) cudaFree(frameBuffer);
-    truthFrameBuffersW.clear();
-    truthFrameBuffersB.clear();
-    truthCameras.clear();
+    if (lastTruthCount != cameras.getCount()) {
+        lastTruthCount = cameras.getCount();
 
-    for (int i = 0; i < cameras.getCount(); i++) {
-        Camera camera = cameras.getCamera(i);
+        for (uint32_t* frameBuffer : truthFrameBuffersW) cudaFree(frameBuffer);
+        for (uint32_t* frameBuffer : truthFrameBuffersB) cudaFree(frameBuffer);
+        truthFrameBuffersW.clear();
+        truthFrameBuffersB.clear();
 
-        uint32_t* frameBufferW;
-        cudaMalloc(&frameBufferW, RENDER_RESOLUTION_X * RENDER_RESOLUTION_Y * sizeof(uint32_t));
-        rtx.render(frameBufferW, camera, {1.0f, 1.0f, 1.0f}, nullptr);
-        truthFrameBuffersW.push_back(frameBufferW);
+        truthCameras.clear();
 
-        uint32_t* frameBufferB;
-        cudaMalloc(&frameBufferB, RENDER_RESOLUTION_X * RENDER_RESOLUTION_Y * sizeof(uint32_t));
-        rtx.render(frameBufferB, camera, {0.0f, 0.0f, 0.0f}, nullptr);
-        truthFrameBuffersB.push_back(frameBufferB);
+        for (int i = 0; i < cameras.getCount(); i++) {
+            Camera camera = cameras.getCamera(i);
 
-        truthCameras.push_back(camera);
+            uint32_t* frameBufferW;
+            cudaMalloc(&frameBufferW, RENDER_RESOLUTION_X * RENDER_RESOLUTION_Y * sizeof(uint32_t));
+            rtx.render(frameBufferW, camera, {1.0f, 1.0f, 1.0f}, nullptr);
+            truthFrameBuffersW.push_back(frameBufferW);
+
+            uint32_t* frameBufferB;
+            cudaMalloc(&frameBufferB, RENDER_RESOLUTION_X * RENDER_RESOLUTION_Y * sizeof(uint32_t));
+            rtx.render(frameBufferB, camera, {0.0f, 0.0f, 0.0f}, nullptr);
+            truthFrameBuffersB.push_back(frameBufferB);
+
+            truthCameras.push_back(camera);
+        }
+    } else {
+        for (int i = 0; i < cameras.getCount(); i++) {
+            Camera camera = cameras.getCamera(i);
+            rtx.render(truthFrameBuffersW.at(i), camera, {1.0f, 1.0f, 1.0f}, nullptr);
+            rtx.render(truthFrameBuffersB.at(i), camera, {0.0f, 0.0f, 0.0f}, nullptr);
+            truthCameras.at(i) = camera;
+        }
     }
 }
 
@@ -358,16 +293,6 @@ void Trainer::train(bool densify) {
         cudaMalloc(&devGradCov3D, model->count * 6 * sizeof(float));
 
         lastCount = model->count;
-    }
-
-    if (lastCapacity != model->capacity) {
-        cudaFree(devFlexIndices);
-        cudaMalloc(&devFlexIndices, model->capacity * sizeof(int));
-
-        cudaFree(devFlexSizes);
-        cudaMalloc(&devFlexSizes, ((model->capacity / 256) + 1) * sizeof(int));
-
-        lastCapacity = model->capacity;
     }
 
     cudaMemset(devVarLocations, 0, model->count * sizeof(float));
@@ -474,13 +399,12 @@ void Trainer::train(bool densify) {
                 devGradRotations,
                 true);
 
-        accumulateGradients<<<256, 256>>>(devAvgGradLocations, devAvgGradShs, devAvgGradScales, devAvgGradOpacities,
-                                          devAvgGradRotations,
+        accumulateGradients<<<256, 256>>>(devAvgGradLocations, devAvgGradShs, devAvgGradScales, devAvgGradOpacities,devAvgGradRotations,
                                           devGradLocations, devGradShs, devGradScales, devGradOpacities, devGradRotations,
                                           (float)truthFrameBuffersW.size() * 2.0f, model->shCoeffs, 256 * 256, model->count);
 
-        accumulateVariance<<<256, 256>>>(devVarLocations, devGradLocations, (float)truthFrameBuffersW.size() * 2.0f,
-                                       256 * 256, model->count);
+        accumulateVariance<<<256, 256>>>(devVarLocations, devGradLocations,
+                                         (float)truthFrameBuffersW.size() * 2.0f, 256 * 256, model->count);
 
         cudaFree(geomBuffer);
         cudaFree(binningBuffer);
@@ -494,40 +418,37 @@ void Trainer::train(bool densify) {
 
     applyGradients<<<256, 256>>>(model->devLocations, model->devShs, model->devScales, model->devOpacities, model->devRotations,
                                  devAvgGradLocations, devAvgGradShs, devAvgGradScales, devAvgGradOpacities, devAvgGradRotations,
-                                 devVarLocations,
                                  learningRate, learningRateShs, learningRateOpacity, learningRateRotation,
-                                 densify ? devFlexIndices : nullptr, model->shCoeffs, 256 * 256, model->count);
+                                 model->shCoeffs, 256 * 256, model->count);
 
-    if (densify) {
-        flexBlockOffsets<<<256, 1>>>(devFlexIndices, devFlexSizes, 256, model->count);
 
-        int* devCountUpdated;
-        cudaMalloc(&devCountUpdated, sizeof(int));
-        flexBlockAccumulate<<<1, 1>>>(devFlexSizes, model->count, devCountUpdated);
-        int* countUpdated = new int;
-        cudaMemcpy(countUpdated, devCountUpdated, sizeof(int), cudaMemcpyDeviceToHost);
-        //wxLogMessage(wxString(std::to_string(*countUpdated)));
-
-        ModelSplatsDevice* model2 = new ModelSplatsDevice(*model);
-        model2->count = std::min(*countUpdated, model2->capacity);
-        delete countUpdated;
-
-        applyDensify<<<256, 256>>>(model2->devLocations, model2->devShs, model2->devScales, model2->devOpacities, model2->devRotations,
-                                   model->devLocations, model->devShs, model->devScales, model->devOpacities, model->devRotations,
-                                   devAvgGradLocations, learningRate,
-                                   devFlexIndices, devFlexSizes, model->shCoeffs, 256 * 256, model->count);
-
-        delete model;
-        model = model2;
-    }
-
-    /*
     if(densify) {
+        // This is a densify iteration, so transfer the model back to host memory. The complex splitting/pruning
+        // operations easier here than on the GPU! This is slower, but it's only about 1/100 iterations so the tradeoff
+        // is worth it.
+        ModelSplatsHost modelHost(*model);
+
+
+        float* varLocations = new float[model->count];
+        float* gradLocations = new float[model->count * 3];
+        cudaMemcpy(varLocations, devVarLocations, model->count * sizeof(float), cudaMemcpyDeviceToHost);
+        cudaMemcpy(gradLocations, devAvgGradLocations, model->count * 3 * sizeof(float), cudaMemcpyDeviceToHost);
+
+        std::unordered_set<int> toSplit, toClone, toRemove;
+        for(int i = 0; i < modelHost.count; i++) {
+            if (modelHost.opacities[i] <= 0.005f || glm::length(glm::vec3(modelHost.scales[i * 3], modelHost.scales[i * 3 + 1], modelHost.scales[i * 3 + 2])) < 0.0001f) {
+                toRemove.insert(i);
+            } else if (varLocations[i] > 2.0f) {
+                if (glm::length(glm::vec3(modelHost.scales[i * 3], modelHost.scales[i * 3 + 1], modelHost.scales[i * 3 + 2])) > 0.02f) toSplit.insert(i);
+                else toClone.insert(i);
+            }
+        }
+
         for (int i : toSplit) {
-            if (model->count < model->capacity) {
-                glm::vec3 locPre(model->locations[i * 3], model->locations[i * 3 + 1], model->locations[i * 3 + 2]);
-                glm::vec3 scalePre(model->scales[i * 3], model->scales[i * 3 + 1], model->scales[i * 3 + 2]);
-                glm::quat rotPre(model->rotations[i * 4], model->rotations[i * 4 + 1], model->rotations[i * 4 + 2], model->rotations[i * 4 + 3]);
+            if (modelHost.count < modelHost.capacity) {
+                glm::vec3 locPre(modelHost.locations[i * 3], modelHost.locations[i * 3 + 1], modelHost.locations[i * 3 + 2]);
+                glm::vec3 scalePre(modelHost.scales[i * 3], modelHost.scales[i * 3 + 1], modelHost.scales[i * 3 + 2]);
+                glm::quat rotPre(modelHost.rotations[i * 4], modelHost.rotations[i * 4 + 1], modelHost.rotations[i * 4 + 2], modelHost.rotations[i * 4 + 3]);
 
                 glm::vec4 scaleOffset4(scalePre.x, scalePre.y, scalePre.z, 1.0f);
                 if (scalePre.x > scalePre.y && scalePre.x > scalePre.z) {
@@ -543,46 +464,52 @@ void Trainer::train(bool densify) {
                 glm::vec3 locNew1 = locPre + glm::vec3(scaleOffset4.x, scaleOffset4.y, scaleOffset4.z) * 0.75f;
                 glm::vec3 locNew2 = locPre - glm::vec3(scaleOffset4.x, scaleOffset4.y, scaleOffset4.z) * 0.75f;
 
-                glm::vec3 scaleNew = glm::vec3(model->scales[i * 3], model->scales[i * 3 + 1], model->scales[i * 3 + 2]) / 2.0f;
+                glm::vec3 scaleNew = glm::vec3(modelHost.scales[i * 3], modelHost.scales[i * 3 + 1], modelHost.scales[i * 3 + 2]) / 2.0f;
 
-                int i2 = model->count;
-                model->count++;
-                model->copy(i2, i); // Create a duplicate splat at the end of the array
+                int i2 = modelHost.count;
+                modelHost.count++;
+                modelHost.copy(i2, i); // Create a duplicate splat at the end of the array
 
-                memcpy(&model->locations[i * 3], &locNew1[0], 3 * sizeof(float));
-                memcpy(&model->locations[i2 * 3], &locNew2[0], 3 * sizeof(float));
-                memcpy(&model->scales[i * 3], &scaleNew[0], 3 * sizeof(float));
-                memcpy(&model->scales[i2 * 3], &scaleNew[0], 3 * sizeof(float));
-                memcpy(&model->rotations[i * 4], &rotPre[0], 4 * sizeof(float));
-                memcpy(&model->rotations[i2 * 4], &rotPre[0], 4 * sizeof(float));
+                memcpy(&modelHost.locations[i * 3], &locNew1[0], 3 * sizeof(float));
+                memcpy(&modelHost.locations[i2 * 3], &locNew2[0], 3 * sizeof(float));
+                memcpy(&modelHost.scales[i * 3], &scaleNew[0], 3 * sizeof(float));
+                memcpy(&modelHost.scales[i2 * 3], &scaleNew[0], 3 * sizeof(float));
+                memcpy(&modelHost.rotations[i * 4], &rotPre[0], 4 * sizeof(float));
+                memcpy(&modelHost.rotations[i2 * 4], &rotPre[0], 4 * sizeof(float));
             }
         }
 
         for (int i : toClone) {
-            if (model->count < model->capacity) {
-                glm::vec3 loc(model->locations[i * 3], model->locations[i * 3 + 1], model->locations[i * 3 + 2]);
-                loc += glm::vec3(avgGradLocations[i * 3] * learningRate,
-                                 avgGradLocations[i * 3 + 1] * learningRate,
-                                 avgGradLocations[i * 3 + 2] * learningRate);
+            if (modelHost.count < modelHost.capacity) {
+                glm::vec3 loc(modelHost.locations[i * 3], modelHost.locations[i * 3 + 1], modelHost.locations[i * 3 + 2]);
+                loc += glm::vec3(gradLocations[i * 3] * learningRate,
+                                 gradLocations[i * 3 + 1] * learningRate,
+                                 gradLocations[i * 3 + 2] * learningRate);
 
-                int i2 = model->count;
-                model->count++;
-                model->copy(i2, i); // Create a duplicate splat at the end of the array
+                int i2 = modelHost.count;
+                modelHost.count++;
+                modelHost.copy(i2, i); // Create a duplicate splat at the end of the array
 
-                memcpy(&model->locations[i2 * 3], &loc[0], 3 * sizeof(float));
+                memcpy(&modelHost.locations[i2 * 3], &loc[0], 3 * sizeof(float));
             }
         }
 
         // Prune small/transparent splats
         if (!toRemove.empty()) {
             int indexPreserved = 0;
-            for (int indexScan = 0; indexScan < model->count; indexScan++) {
+            for (int indexScan = 0; indexScan < modelHost.count; indexScan++) {
                 if (!toRemove.count(indexScan)) {
-                    if (indexPreserved != indexScan) model->copy(indexPreserved, indexScan);
+                    if (indexPreserved != indexScan) modelHost.copy(indexPreserved, indexScan);
                     indexPreserved++;
                 }
             }
-            model->count -= (int)toRemove.size();
+            modelHost.count -= (int)toRemove.size();
         }
-    }*/
+
+        delete[] varLocations;
+        delete[] gradLocations;
+
+        delete model;
+        model = new ModelSplatsDevice(modelHost);
+    }
 }

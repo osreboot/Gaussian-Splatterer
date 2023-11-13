@@ -74,14 +74,15 @@ void TruthCameras::refresh() {
     // Algorithm source for Fibonacci sphere placement: https://youtu.be/lctXaT9pxA0?si=xJQE1KXCH92s5tne&t=66
     float goldenRatio = (1.0f + sqrtf(5.0f)) / 2.0f;
     float angleStep = 2.0f * (float)M_PI * goldenRatio;
-    for(int i = 0; i < count; i++) {
-        float t = (float)i / (float)count;
+    for(int i = 0; i < count / 2; i++) {
+        float t = (float)i / ((float)count * 0.5f);
         float angle1 = acosf(1.0f - 2.0f * t);
         float angle2 = angleStep * (float)i;
 
         glm::vec4 loc(sinf(angle1) * cosf(angle2) * distance, sinf(angle1) * sinf(angle2) * distance, cosf(angle1) * distance, 1.0f);
         loc = rot * loc;
         locations.emplace_back(loc.x / loc.w, loc.y / loc.w, loc.z / loc.w);
+        locations.emplace_back(loc.x * 0.5f / loc.w, loc.y * 0.5f / loc.w, loc.z * 0.5f / loc.w);
     }
 
     updatedInput = true;

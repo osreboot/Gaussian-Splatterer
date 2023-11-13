@@ -8,7 +8,7 @@ class Trainer {
 
 private:
     int lastCount = -1;
-    int lastCapacity = -1;
+    int lastTruthCount = -1;
 
     float* devBackground;
     float* devMatView;
@@ -35,9 +35,6 @@ private:
     float* devGradConic;
     float* devGradColor;
     float* devGradCov3D;
-
-    int* devFlexIndices;
-    int* devFlexSizes;
 
 public:
     ModelSplatsDevice* model;
