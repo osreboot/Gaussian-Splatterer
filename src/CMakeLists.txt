@@ -12,6 +12,8 @@ target_sources(${PROJECT_NAME} PRIVATE
         TruthCameras.h
         rtx/RtxHost.cpp
         rtx/RtxHost.h
+        ui/UiDialogAbout.cpp
+        ui/UiDialogAbout.h
         ui/UiFrame.cpp
         ui/UiFrame.h
         ui/UiPanelInput.cpp

@@ -106,10 +106,13 @@ Trainer::Trainer() {
     static const float dim = 4.0f;
     static const float step = 0.5f;
 
+    std::vector<float> shs;
+    for(int i = 0; i < 3 * modelHost.shCoeffs; i++) shs.push_back(0.0f);
+
     for(float x = -dim; x <= dim; x += step){
         for(float y = -dim; y <= dim; y += step){
             for(float z = -dim; z <= dim; z += step){
-                modelHost.pushBack({x, y, z}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}, {step * 0.1f, step * 0.1f, step * 0.1f},
+                modelHost.pushBack({x, y, z}, shs, {step * 0.1f, step * 0.1f, step * 0.1f},
                                 1.0f, glm::angleAxis(0.0f, glm::vec3(0.0f, 1.0f, 0.0f)));
                 //modelHost.pushBack({x, y, z}, {0.0f, 0.0f, 0.0f}, {step * 0.1f, step * 0.1f, step * 0.1f},
                 //                1.0f, glm::angleAxis(0.0f, glm::vec3(0.0f, 1.0f, 0.0f)));

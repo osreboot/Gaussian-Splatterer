@@ -25,6 +25,13 @@ public:
     RtxHost* rtx;
     Trainer* trainer;
 
+    wxMenuBar* menuBar;
+    wxMenu* menuFile;
+    wxMenu* menuFileInit;
+    wxMenu* menuFileLoad;
+    wxMenu* menuFileSave;
+    wxMenu* menuAbout;
+
     UiPanelInput* panelInput;
     UiPanelOutput* panelOutput;
     UiPanelTools* panelTools;
@@ -37,9 +44,19 @@ public:
 private:
     void update();
 
+    void onMenuButton(wxCommandEvent& event);
+
     void onPaint(wxPaintEvent& event);
     void onIdle(wxIdleEvent& event);
 
     DECLARE_EVENT_TABLE();
+
+    enum MenuIds {
+        FILE_SAVE_SPLATS,
+        FILE_SAVE_SETTINGS,
+        FILE_LOAD_SPLATS,
+        FILE_LOAD_SETTINGS,
+        ABOUT_ABOUT
+    };
 
 };

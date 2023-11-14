@@ -31,7 +31,7 @@ add_subdirectory(lib/wxWidgets)
 
 add_subdirectory(lib/diff-gaussian-rasterization)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE owl::owl ${PROJECT_NAME}-ptx wx::net wx::core wx::base wx::gl CudaRasterizer)
+target_link_libraries(${PROJECT_NAME} PRIVATE owl::owl ${PROJECT_NAME}-ptx wx::net wx::core wx::base wx::gl wx::html CudaRasterizer)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
         CUDA_SEPARABLE_COMPILATION ON)
