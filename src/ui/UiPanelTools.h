@@ -9,10 +9,9 @@
 class UiPanelTools : public wxPanel {
 
 private:
-    wxBoxSizer* sizer;
+    Project& getProject() const;
 
-    UiPanelToolsTruth* panelTruth;
-    UiPanelToolsTrain* panelTrain;
+    wxBoxSizer* sizer;
 
     wxStaticBoxSizer* sizerStaticInput;
     wxStaticBoxSizer* sizerStaticOutput;
@@ -21,7 +20,12 @@ private:
     wxSpinCtrl* spinCtrlPreviewCamera;
 
 public:
+    UiPanelToolsTruth* panelTruth;
+    UiPanelToolsTrain* panelTrain;
+
     UiPanelTools(wxWindow* parent);
+
+    void refreshCameraCount();
 
     void onCheckBoxPreviewCamera(wxCommandEvent& event);
     void onSpinCtrlPreviewCamera(wxSpinEvent& event);

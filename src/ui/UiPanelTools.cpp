@@ -5,11 +5,11 @@
 #include "Camera.h"
 #include "Project.h"
 
-using namespace std;
+Project& UiPanelTools::getProject() const {
+    return *dynamic_cast<UiFrame*>(GetParent()->GetParent())->project;
+}
 
 UiPanelTools::UiPanelTools(wxWindow *parent) : wxPanel(parent) {
-    Project& project = *dynamic_cast<UiFrame*>(GetParent()->GetParent())->project;
-
     sizer = new wxBoxSizer(wxHORIZONTAL);
 
     sizerStaticInput = new wxStaticBoxSizer(wxVERTICAL, this, "1. Input Model Data");
@@ -19,6 +19,7 @@ UiPanelTools::UiPanelTools(wxWindow *parent) : wxPanel(parent) {
     sizer->Add(panelTruth, wxSizerFlags().Expand().Border());
 
     panelTrain = new UiPanelToolsTrain(this);
+    panelTrain->Disable();
     sizer->Add(panelTrain, wxSizerFlags().Expand().Border());
 
     sizerStaticOutput = new wxStaticBoxSizer(wxVERTICAL, this, "4. Visualize Splats");
@@ -31,7 +32,7 @@ UiPanelTools::UiPanelTools(wxWindow *parent) : wxPanel(parent) {
     auto textCtrlPreviewCamera = new wxStaticText(this, wxID_ANY, "View Perspective Index");
     sizerStaticOutput->Add(textCtrlPreviewCamera, wxSizerFlags().Border(wxUP | wxLEFT | wxRIGHT));
     spinCtrlPreviewCamera = new wxSpinCtrl(this);
-    spinCtrlPreviewCamera->SetRange(1, Camera::getCamerasCount(project));
+    spinCtrlPreviewCamera->SetRange(1, Camera::getCamerasCount(getProject()));
     spinCtrlPreviewCamera->SetValue(1);
     spinCtrlPreviewCamera->SetMinSize({64, -1});
     spinCtrlPreviewCamera->Bind(wxEVT_COMMAND_SPINCTRL_UPDATED, &UiPanelTools::onSpinCtrlPreviewCamera, this);
@@ -39,6 +40,11 @@ UiPanelTools::UiPanelTools(wxWindow *parent) : wxPanel(parent) {
     sizerStaticOutput->Add(spinCtrlPreviewCamera, wxSizerFlags().Border(wxDOWN | wxLEFT | wxRIGHT));
 
     SetSizerAndFit(sizer);
+}
+
+void UiPanelTools::refreshCameraCount() {
+    spinCtrlPreviewCamera->SetRange(1, Camera::getCamerasCount(getProject()));
+    getProject().previewIndex = std::max(-1, std::min(Camera::getCamerasCount(getProject()) - 1, getProject().previewIndex));
 }
 
 void UiPanelTools::onCheckBoxPreviewCamera(wxCommandEvent& event) {

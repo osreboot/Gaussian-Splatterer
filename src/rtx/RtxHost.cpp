@@ -164,8 +164,9 @@ void RtxHost::render(uint32_t* frameBuffer, const Camera& camera, vec3f backgrou
     owlRayGenSet1i(rayGen, "splatCamerasCount", (int)cameras.size());
 
     if (!cameras.empty()) {
-        vector<glm::vec3> cameraLocations;
-        for(const Camera& c : cameras) cameraLocations.push_back(c.location);
+        vector<glm::vec3> cameraLocations = cameras
+                | ranges::views::transform([](Camera camera){ return camera.location; })
+                | ranges::to<vector>();
 
         OWLBuffer splatCamerasBuffer = owlDeviceBufferCreate(context, OWL_FLOAT3, cameraLocations.size(), cameraLocations.data());
         owlRayGenSetBuffer(rayGen, "splatCameras", splatCamerasBuffer);

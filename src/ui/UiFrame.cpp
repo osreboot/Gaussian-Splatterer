@@ -19,6 +19,7 @@ UiFrame::UiFrame() :
     panel->SetSizerAndFit(sizer);
 
     project = new Project();
+    project->sphere2.fovDeg = 30.0f;
 
     rtx = new RtxHost({RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y});
     rtx->load(R"(C:\Users\Calvin\Desktop\Archives\Development\Resources\Gecko 3d model\Splats\Gecko.obj)",
@@ -95,12 +96,12 @@ void UiFrame::update() {
             autoTrainingBudget = 0.0f;
             if((trainer->iterations + 1) % 50 == 0) {
                 wxCommandEvent eventFake = wxCommandEvent(wxEVT_NULL, 0);
-                //panelTools->onButtonCamerasRotRandom(eventFake);
-                //panelTools->onButtonCamerasCapture(eventFake);
+                panelTools->panelTruth->onButtonRandomRotate(eventFake);
+                panelTools->panelTruth->onButtonCapture(eventFake);
             }
             trainer->train((trainer->iterations + 1) % 200 == 0);
-            //panelTools->updateIterationCount();
-            //panelTools->updateSplatCount();
+            //TODO panelTools->updateIterationCount();
+            //TODO panelTools->updateSplatCount();
         }
     }
 }

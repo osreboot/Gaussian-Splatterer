@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 project(GaussianSplatterer LANGUAGES C CXX CUDA)
 
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CUDA_STANDARD 14)
 
 add_definitions(-DNDEBUG)
@@ -27,6 +28,7 @@ embed_ptx(
 )
 
 set(wxBUILD_SHARED OFF)
+set(wxUSE_REGEX OFF)
 add_subdirectory(lib/wxWidgets)
 
 add_subdirectory(lib/diff-gaussian-rasterization)

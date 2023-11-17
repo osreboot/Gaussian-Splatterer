@@ -30,7 +30,7 @@ void UiPanelViewInput::render() {
     UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
     Project& project = *frame->project;
     frame->rtx->render(frameBuffer, Camera::getPreviewCamera(project), {0.0f, 0.0f, 0.0f},
-                       project.previewIndex == -1 ? std::vector<Camera>() : Camera::getCameras(project));
+                       project.previewIndex == -1 ? Camera::getCameras(project) : std::vector<Camera>());
 
     // Post-update
     OWL_CUDA_CHECK(cudaGraphicsMapResources(1, &textureCuda));

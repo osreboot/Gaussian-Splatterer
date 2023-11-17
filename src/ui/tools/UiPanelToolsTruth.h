@@ -3,9 +3,15 @@
 #include <wx/wx.h>
 #include <wx/spinctrl.h>
 
+#include "Project.h"
+#include "ui/UiFrame.h"
+
 class UiPanelToolsTruth : public wxPanel {
 
 private:
+    UiFrame& getFrame() const;
+    Project& getProject() const;
+
     wxStaticBoxSizer* sizer;
 
     wxStaticBoxSizer* sizerSphere1;
@@ -28,20 +34,24 @@ private:
     wxButton* buttonCapture;
     wxStaticText* textStatus;
 
+    enum CameraSphereIds {
+        S1_COUNT,
+        S1_DISTANCE,
+        S1_FOV,
+        S1_ROTX,
+        S1_ROTY,
+        S2_COUNT,
+        S2_DISTANCE,
+        S2_FOV,
+        S2_ROTX,
+        S2_ROTY
+    };
+
 public:
     UiPanelToolsTruth(wxWindow* parent);
 
-    void onSpinSphere1Count(wxSpinEvent& event);
-    void onSpinSphere1Distance(wxSpinDoubleEvent& event);
-    void onSpinSphere1Fov(wxSpinDoubleEvent& event);
-    void onSpinSphere1RotX(wxSpinDoubleEvent& event);
-    void onSpinSphere1RotY(wxSpinDoubleEvent& event);
-
-    void onSpinSphere2Count(wxSpinEvent& event);
-    void onSpinSphere2Distance(wxSpinDoubleEvent& event);
-    void onSpinSphere2Fov(wxSpinDoubleEvent& event);
-    void onSpinSphere2RotX(wxSpinDoubleEvent& event);
-    void onSpinSphere2RotY(wxSpinDoubleEvent& event);
+    void onSpin(wxSpinEvent& event);
+    void onSpinDouble(wxSpinDoubleEvent& event);
 
     void onButtonRandomRotate(wxCommandEvent& event);
     void onButtonCapture(wxCommandEvent& event);

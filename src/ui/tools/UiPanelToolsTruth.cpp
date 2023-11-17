@@ -1,5 +1,19 @@
 #include "UiPanelToolsTruth.h"
 
+#include "ui/UiFrame.h"
+#include "ui/UiPanelTools.h"
+#include "Camera.h"
+#include "Project.h"
+#include "Trainer.cuh"
+
+UiFrame& UiPanelToolsTruth::getFrame() const {
+    return *dynamic_cast<UiFrame*>(GetParent()->GetParent()->GetParent());
+}
+
+Project& UiPanelToolsTruth::getProject() const {
+    return *getFrame().project;
+}
+
 UiPanelToolsTruth::UiPanelToolsTruth(wxWindow* parent) : wxPanel(parent) {
     sizer = new wxStaticBoxSizer(wxHORIZONTAL, this, "2. Build Truth Data");
 
@@ -14,49 +28,44 @@ UiPanelToolsTruth::UiPanelToolsTruth(wxWindow* parent) : wxPanel(parent) {
     sizerSphere1->Add(sizerSphere1_2, wxSizerFlags().Border());
 
     sizerSphere1_1->Add(new wxStaticText(this, wxID_ANY, "Count"));
-    spinSphere1Count = new wxSpinCtrl(this);
+    spinSphere1Count = new wxSpinCtrl(this, S1_COUNT);
     spinSphere1Count->SetRange(1, 512);
-    //spinSphere1Count->SetValue(frame->truthCameras->getCount());
+    spinSphere1Count->SetValue(getProject().sphere1.count);
     spinSphere1Count->SetMinSize({64, -1});
-    //spinSphere1Count->Bind(wxEVT_COMMAND_SPINCTRL_UPDATED, &UiPanelToolsTruth::onSpinCtrlCamerasCount, this);
     sizerSphere1_1->Add(spinSphere1Count);
 
     sizerSphere1_1->Add(new wxStaticText(this, wxID_ANY, "Distance"), wxSizerFlags().Border(wxUP));
-    spinSphere1Distance = new wxSpinCtrlDouble(this);
+    spinSphere1Distance = new wxSpinCtrlDouble(this, S1_DISTANCE);
     spinSphere1Distance->SetRange(0.1, 40.0);
     spinSphere1Distance->SetDigits(2);
     spinSphere1Distance->SetIncrement(0.1);
-    //spinSphere1Distance->SetValue(frame->truthCameras->getDistance());
+    spinSphere1Distance->SetValue(getProject().sphere1.distance);
     spinSphere1Distance->SetMinSize({64, -1});
-    //spinSphere1Distance->Bind(wxEVT_COMMAND_SPINCTRLDOUBLE_UPDATED, &UiPanelToolsTruth::onSpinCtrlCamerasDistance, this);
     sizerSphere1_1->Add(spinSphere1Distance);
 
     sizerSphere1_2->Add(new wxStaticText(this, wxID_ANY, "FOV"));
-    spinSphere1Fov = new wxSpinCtrlDouble(this);
+    spinSphere1Fov = new wxSpinCtrlDouble(this, S1_FOV);
     spinSphere1Fov->SetRange(10.0, 120.0);
     spinSphere1Fov->SetDigits(1);
     spinSphere1Fov->SetIncrement(0.1);
-    //spinSphere1Fov->SetValue(frame->truthCameras->getDistance());
+    spinSphere1Fov->SetValue(getProject().sphere1.fovDeg);
     spinSphere1Fov->SetMinSize({64, -1});
-    //spinSphere1Fov->Bind(wxEVT_COMMAND_SPINCTRLDOUBLE_UPDATED, &UiPanelToolsTruth::onSpinCtrlCamerasDistance, this);
     sizerSphere1_2->Add(spinSphere1Fov);
 
     sizerSphere1_2->Add(new wxStaticText(this, wxID_ANY, "Rotation (X,Y)"), wxSizerFlags().Border(wxUP));
-    spinSphere1RotX = new wxSpinCtrlDouble(this);
+    spinSphere1RotX = new wxSpinCtrlDouble(this, S1_ROTX);
     spinSphere1RotX->SetRange(0.0, 360.0);
     spinSphere1RotX->SetDigits(1);
     spinSphere1RotX->SetIncrement(1);
-    //spinSphere1RotX->SetValue(frame->truthCameras->getRotationOffsetX());
+    spinSphere1RotX->SetValue(getProject().sphere2.rotX);
     spinSphere1RotX->SetMinSize({64, -1});
-    //spinSphere1RotX->Bind(wxEVT_COMMAND_SPINCTRLDOUBLE_UPDATED, &UiPanelToolsTruth::onSpinCtrlCamerasRotX, this);
     sizerSphere1_2->Add(spinSphere1RotX);
-    spinSphere1RotY = new wxSpinCtrlDouble(this);
+    spinSphere1RotY = new wxSpinCtrlDouble(this, S1_ROTY);
     spinSphere1RotY->SetRange(0.0, 360.0);
     spinSphere1RotY->SetDigits(1);
     spinSphere1RotY->SetIncrement(1);
-    //spinSphere1RotY->SetValue(frame->truthCameras->getRotationOffsetY());
+    spinSphere1RotY->SetValue(getProject().sphere1.rotY);
     spinSphere1RotY->SetMinSize({64, -1});
-    //spinSphere1RotY->Bind(wxEVT_COMMAND_SPINCTRLDOUBLE_UPDATED, &UiPanelToolsTruth::onSpinCtrlCamerasRotY, this);
     sizerSphere1_2->Add(spinSphere1RotY);
 
 
@@ -70,49 +79,44 @@ UiPanelToolsTruth::UiPanelToolsTruth(wxWindow* parent) : wxPanel(parent) {
     sizerSphere2->Add(sizerSphere2_2, wxSizerFlags().Border());
 
     sizerSphere2_1->Add(new wxStaticText(this, wxID_ANY, "Count"));
-    spinSphere2Count = new wxSpinCtrl(this);
-    spinSphere2Count->SetRange(1, 512);
-    //spinSphere2Count->SetValue(frame->truthCameras->getCount());
+    spinSphere2Count = new wxSpinCtrl(this, S2_COUNT);
+    spinSphere2Count->SetRange(0, 512);
+    spinSphere2Count->SetValue(getProject().sphere2.count);
     spinSphere2Count->SetMinSize({64, -1});
-    //spinSphere2Count->Bind(wxEVT_COMMAND_SPINCTRL_UPDATED, &UiPanelToolsTruth::onSpinCtrlCamerasCount, this);
     sizerSphere2_1->Add(spinSphere2Count);
 
     sizerSphere2_1->Add(new wxStaticText(this, wxID_ANY, "Distance"), wxSizerFlags().Border(wxUP));
-    spinSphere2Distance = new wxSpinCtrlDouble(this);
+    spinSphere2Distance = new wxSpinCtrlDouble(this, S2_DISTANCE);
     spinSphere2Distance->SetRange(0.1, 40.0);
     spinSphere2Distance->SetDigits(2);
     spinSphere2Distance->SetIncrement(0.1);
-    //spinSphere2Distance->SetValue(frame->truthCameras->getDistance());
+    spinSphere2Distance->SetValue(getProject().sphere2.distance);
     spinSphere2Distance->SetMinSize({64, -1});
-    //spinSphere2Distance->Bind(wxEVT_COMMAND_SPINCTRLDOUBLE_UPDATED, &UiPanelToolsTruth::onSpinCtrlCamerasDistance, this);
     sizerSphere2_1->Add(spinSphere2Distance);
 
     sizerSphere2_2->Add(new wxStaticText(this, wxID_ANY, "FOV"));
-    spinSphere2Fov = new wxSpinCtrlDouble(this);
+    spinSphere2Fov = new wxSpinCtrlDouble(this, S2_FOV);
     spinSphere2Fov->SetRange(10.0, 120.0);
     spinSphere2Fov->SetDigits(1);
     spinSphere2Fov->SetIncrement(0.1);
-    //spinSphere2Fov->SetValue(frame->truthCameras->getDistance());
+    spinSphere2Fov->SetValue(getProject().sphere2.fovDeg);
     spinSphere2Fov->SetMinSize({64, -1});
-    //spinSphere2Fov->Bind(wxEVT_COMMAND_SPINCTRLDOUBLE_UPDATED, &UiPanelToolsTruth::onSpinCtrlCamerasDistance, this);
     sizerSphere2_2->Add(spinSphere2Fov);
 
     sizerSphere2_2->Add(new wxStaticText(this, wxID_ANY, "Rotation (X,Y)"), wxSizerFlags().Border(wxUP));
-    spinSphere2RotX = new wxSpinCtrlDouble(this);
+    spinSphere2RotX = new wxSpinCtrlDouble(this, S2_ROTX);
     spinSphere2RotX->SetRange(0.0, 360.0);
     spinSphere2RotX->SetDigits(1);
     spinSphere2RotX->SetIncrement(1);
-    //spinSphere2RotX->SetValue(frame->truthCameras->getRotationOffsetX());
+    spinSphere2RotX->SetValue(getProject().sphere2.rotX);
     spinSphere2RotX->SetMinSize({64, -1});
-    //spinSphere2RotX->Bind(wxEVT_COMMAND_SPINCTRLDOUBLE_UPDATED, &UiPanelToolsTruth::onSpinCtrlCamerasRotX, this);
     sizerSphere2_2->Add(spinSphere2RotX);
-    spinSphere2RotY = new wxSpinCtrlDouble(this);
+    spinSphere2RotY = new wxSpinCtrlDouble(this, S2_ROTY);
     spinSphere2RotY->SetRange(0.0, 360.0);
     spinSphere2RotY->SetDigits(1);
     spinSphere2RotY->SetIncrement(1);
-    //spinSphere2RotY->SetValue(frame->truthCameras->getRotationOffsetY());
+    spinSphere2RotY->SetValue(getProject().sphere2.rotY);
     spinSphere2RotY->SetMinSize({64, -1});
-    //spinSphere2RotY->Bind(wxEVT_COMMAND_SPINCTRLDOUBLE_UPDATED, &UiPanelToolsTruth::onSpinCtrlCamerasRotY, this);
     sizerSphere2_2->Add(spinSphere2RotY);
 
 
@@ -133,46 +137,44 @@ UiPanelToolsTruth::UiPanelToolsTruth(wxWindow* parent) : wxPanel(parent) {
 
 
 
+    Bind(wxEVT_COMMAND_SPINCTRL_UPDATED, &UiPanelToolsTruth::onSpin, this);
+    Bind(wxEVT_COMMAND_SPINCTRLDOUBLE_UPDATED, &UiPanelToolsTruth::onSpinDouble, this);
+
+
+
     SetSizerAndFit(sizer);
 }
 
-void UiPanelToolsTruth::onSpinSphere1Count(wxSpinEvent& event) {
-    //UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
-    //frame->truthCameras->setCount(event.GetValue());
-    //spinCtrlPreviewCamera->SetRange(1, event.GetValue());
+void UiPanelToolsTruth::onSpin(wxSpinEvent& event) {
+    switch(event.GetId()) {
+        case CameraSphereIds::S1_COUNT: getProject().sphere1.count = event.GetValue(); break;
+        case CameraSphereIds::S2_COUNT: getProject().sphere2.count = event.GetValue(); break;
+    }
+    getFrame().panelTools->refreshCameraCount();
 }
 
-void UiPanelToolsTruth::onSpinSphere1Distance(wxSpinDoubleEvent& event) {
-    //UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
-    //frame->truthCameras->setDistance((float)event.GetValue());
-}
-
-void UiPanelToolsTruth::onSpinSphere1RotX(wxSpinDoubleEvent& event) {
-    //UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
-    //frame->truthCameras->setRotationOffset((float)event.GetValue(), frame->truthCameras->getRotationOffsetY());
-}
-
-void UiPanelToolsTruth::onSpinSphere1RotY(wxSpinDoubleEvent& event) {
-    //UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
-    //frame->truthCameras->setRotationOffset(frame->truthCameras->getRotationOffsetX(), (float)event.GetValue());
+void UiPanelToolsTruth::onSpinDouble(wxSpinDoubleEvent& event) {
+    switch(event.GetId()) {
+        case CameraSphereIds::S1_DISTANCE: getProject().sphere1.distance = (float)event.GetValue(); break;
+        case CameraSphereIds::S1_FOV: getProject().sphere1.fovDeg = (float)event.GetValue(); break;
+        case CameraSphereIds::S1_ROTX: getProject().sphere1.rotX = (float)event.GetValue(); break;
+        case CameraSphereIds::S1_ROTY: getProject().sphere1.rotY = (float)event.GetValue(); break;
+        case CameraSphereIds::S2_DISTANCE: getProject().sphere2.distance = (float)event.GetValue(); break;
+        case CameraSphereIds::S2_FOV: getProject().sphere2.fovDeg = (float)event.GetValue(); break;
+        case CameraSphereIds::S2_ROTX: getProject().sphere2.rotX = (float)event.GetValue(); break;
+        case CameraSphereIds::S2_ROTY: getProject().sphere2.rotY = (float)event.GetValue(); break;
+    }
 }
 
 void UiPanelToolsTruth::onButtonRandomRotate(wxCommandEvent& event) {
-    /*UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
-    frame->truthCameras->setRotationOffset(((float)rand() / (float)RAND_MAX) * 360.0f, ((float)rand() / (float)RAND_MAX) * 360.0f);
-    spinCtrlCamerasRotX->SetValue(frame->truthCameras->getRotationOffsetX());
-    spinCtrlCamerasRotY->SetValue(frame->truthCameras->getRotationOffsetY());*/
+    spinSphere1RotX->SetValue(getProject().sphere1.rotX = ((float)rand() / (float)RAND_MAX) * 360.0f);
+    spinSphere1RotY->SetValue(getProject().sphere1.rotY = ((float)rand() / (float)RAND_MAX) * 360.0f);
+    spinSphere2RotX->SetValue(getProject().sphere2.rotX = ((float)rand() / (float)RAND_MAX) * 360.0f);
+    spinSphere2RotY->SetValue(getProject().sphere2.rotY = ((float)rand() / (float)RAND_MAX) * 360.0f);
 }
 
 void UiPanelToolsTruth::onButtonCapture(wxCommandEvent& event) {
-    /*UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
-    frame->trainer->captureTruths(*frame->truthCameras, *frame->rtx);
-    textCamerasStatus->SetLabel("[ " + to_string(frame->trainer->truthFrameBuffersW.size()) + " (x2) saved truth frames ]");
-    if(!frame->autoTraining) {
-        buttonTrain->Enable();
-        buttonTrain10->Enable();
-        buttonTrain100->Enable();
-        buttonTrainDensify->Enable();
-        buttonTrainAutoStart->Enable();
-    }*/
+    getFrame().trainer->captureTruths(getProject(), *getFrame().rtx);
+    textStatus->SetLabel("[ " + std::to_string(getFrame().trainer->truthFrameBuffersW.size()) + " (x2) saved truth frames ]");
+    if(!getFrame().autoTraining) getFrame().panelTools->panelTrain->Enable();
 }
