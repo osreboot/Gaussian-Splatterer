@@ -1,5 +1,6 @@
 #include "UiDialogAbout.h"
-#include "wx/html/htmlwin.h"
+
+#include <wx/html/htmlwin.h>
 
 UiDialogAbout::UiDialogAbout(wxWindow* parent) : wxDialog(parent, wxID_ANY, "About Gaussian Splatterer") {
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);

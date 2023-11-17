@@ -1,25 +1,32 @@
 target_sources(${PROJECT_NAME} PRIVATE
         Main.cpp
+        Camera.cpp
+        Camera.h
         Config.h
         ModelSplatsDevice.cpp
         ModelSplatsDevice.h
         ModelSplatsHost.cpp
         ModelSplatsHost.h
+        OpenGLIncludes.h
+        Project.cpp
+        Project.h
         StbImpl.cpp
         Trainer.cu
         Trainer.cuh
-        TruthCameras.cpp
-        TruthCameras.h
         rtx/RtxHost.cpp
         rtx/RtxHost.h
+        ui/tools/UiPanelToolsTrain.cpp
+        ui/tools/UiPanelToolsTrain.h
+        ui/tools/UiPanelToolsTruth.cpp
+        ui/tools/UiPanelToolsTruth.h
         ui/UiDialogAbout.cpp
         ui/UiDialogAbout.h
         ui/UiFrame.cpp
         ui/UiFrame.h
-        ui/UiPanelInput.cpp
-        ui/UiPanelInput.h
-        ui/UiPanelOutput.cpp
-        ui/UiPanelOutput.h
+        ui/UiPanelViewInput.cpp
+        ui/UiPanelViewInput.h
+        ui/UiPanelViewOutput.cpp
+        ui/UiPanelViewOutput.h
         ui/UiPanelTools.cpp
         ui/UiPanelTools.h
         )

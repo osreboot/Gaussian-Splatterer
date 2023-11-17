@@ -1,6 +1,7 @@
 #include "ModelSplatsHost.h"
+
 #include "ModelSplatsDevice.h"
-#include "ui/UiPanelInput.h"
+#include "ui/UiPanelViewInput.h"
 
 ModelSplatsHost::ModelSplatsHost(int capacity, int shDegree, int shCoeffs) :
         capacity(capacity), shDegree(shDegree), shCoeffs(shCoeffs) {

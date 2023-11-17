@@ -8,8 +8,6 @@
 #define PROGRAM_EXPOSURE_FACTOR 1.0f
 #define SPLAT_CAMERA_DOT_SIZE 0.025f
 
-#define NESTED_MATERIALS_MAX 50
-
 // Material properties
 struct Material {
     bool fullbright; // Is it a light source?

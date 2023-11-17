@@ -1,9 +1,8 @@
 #pragma once
 
-#include "Config.h"
-#include "UiPanelInput.h"
+#include "OpenGLIncludes.h"
 
-class UiPanelOutput : public wxGLCanvas {
+class UiPanelViewOutput : public wxGLCanvas {
 
 private:
     GLuint textureFrameBuffer = {0};
@@ -13,7 +12,7 @@ private:
 public:
     wxGLContext* context;
 
-    UiPanelOutput(wxWindow *parent, wxGLContext* context);
+    UiPanelViewOutput(wxWindow *parent, wxGLContext* context);
 
     void render();
 

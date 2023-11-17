@@ -3,7 +3,7 @@
 #include <owl/owl.h>
 #include <owl/common.h>
 
-#include "TruthCameras.h"
+class Camera;
 
 extern "C" char RtxDevice_ptx[];
 
@@ -20,10 +20,10 @@ private:
     bool initialized;
 
 public:
-    RtxHost(const owl::vec2i size);
+    explicit RtxHost(owl::vec2i size);
 
     void load(const std::string& pathModel, const std::string& pathTexture);
 
-    void render(uint32_t* frameBuffer, const Camera& camera, owl::vec3f background, TruthCameras* cameras);
+    void render(uint32_t* frameBuffer, const Camera& camera, owl::vec3f background, const std::vector<Camera>& cameras);
 
 };

@@ -1,15 +1,19 @@
+#include "Trainer.cuh"
+
+#include "OpenGLIncludes.h"
+
 #include <unordered_set>
 #include <cmath>
-#include <fstream>
-
-#include "ui/UiPanelInput.h"
-
-#include "Trainer.cuh"
-#include "TruthCameras.h"
-#include "ModelSplatsHost.h"
 
 #include <rasterizer.h>
 #include <diff-gaussian-rasterization/third_party/glm/glm/gtc/type_ptr.hpp>
+
+#include "rtx/RtxHost.h"
+#include "Camera.h"
+#include "Config.h"
+#include "ModelSplatsDevice.h"
+#include "ModelSplatsHost.h"
+#include "Project.h"
 
 __global__ void imageFloatToInt(const float* source, uint32_t* frameBuffer, const int step, const int w, const int h) {
     for(int i = blockIdx.x * blockDim.x + threadIdx.x; i < w * h; i += step){
@@ -195,8 +199,8 @@ void Trainer::render(uint32_t* frameBuffer, const Camera& camera) {
             devMatView,
             devMatProjView,
             devCameraLocation,
-            tan(glm::radians(camera.degFovX) * 0.5f),
-            tan(glm::radians(camera.degFovY) * 0.5f),
+            tan(glm::radians(camera.fovDegY) * 0.5f),
+            tan(glm::radians(camera.fovDegY) * 0.5f),
             false,
             devRasterized,
             nullptr,
@@ -209,9 +213,9 @@ void Trainer::render(uint32_t* frameBuffer, const Camera& camera) {
     cudaFree(imgBuffer);
 }
 
-void Trainer::captureTruths(const TruthCameras& cameras, RtxHost& rtx) {
-    if (lastTruthCount != cameras.getCount()) {
-        lastTruthCount = cameras.getCount();
+void Trainer::captureTruths(const Project& project, RtxHost& rtx) {
+    if (lastTruthCount != Camera::getCamerasCount(project)) {
+        lastTruthCount = Camera::getCamerasCount(project);
 
         for (uint32_t* frameBuffer : truthFrameBuffersW) cudaFree(frameBuffer);
         for (uint32_t* frameBuffer : truthFrameBuffersB) cudaFree(frameBuffer);
@@ -220,27 +224,25 @@ void Trainer::captureTruths(const TruthCameras& cameras, RtxHost& rtx) {
 
         truthCameras.clear();
 
-        for (int i = 0; i < cameras.getCount(); i++) {
-            Camera camera = cameras.getCamera(i);
-
+        for (const Camera& camera : Camera::getCameras(project)) {
             uint32_t* frameBufferW;
             cudaMalloc(&frameBufferW, RENDER_RESOLUTION_X * RENDER_RESOLUTION_Y * sizeof(uint32_t));
-            rtx.render(frameBufferW, camera, {1.0f, 1.0f, 1.0f}, nullptr);
+            rtx.render(frameBufferW, camera, {1.0f, 1.0f, 1.0f}, {});
             truthFrameBuffersW.push_back(frameBufferW);
 
             uint32_t* frameBufferB;
             cudaMalloc(&frameBufferB, RENDER_RESOLUTION_X * RENDER_RESOLUTION_Y * sizeof(uint32_t));
-            rtx.render(frameBufferB, camera, {0.0f, 0.0f, 0.0f}, nullptr);
+            rtx.render(frameBufferB, camera, {0.0f, 0.0f, 0.0f}, {});
             truthFrameBuffersB.push_back(frameBufferB);
 
             truthCameras.push_back(camera);
         }
     } else {
-        for (int i = 0; i < cameras.getCount(); i++) {
-            Camera camera = cameras.getCamera(i);
-            rtx.render(truthFrameBuffersW.at(i), camera, {1.0f, 1.0f, 1.0f}, nullptr);
-            rtx.render(truthFrameBuffersB.at(i), camera, {0.0f, 0.0f, 0.0f}, nullptr);
-            truthCameras.at(i) = camera;
+        std::vector<Camera> cameras = Camera::getCameras(project);
+        for (int i = 0; i < cameras.size(); i++) {
+            rtx.render(truthFrameBuffersW.at(i), cameras.at(i), {1.0f, 1.0f, 1.0f}, {});
+            rtx.render(truthFrameBuffersB.at(i), cameras.at(i), {0.0f, 0.0f, 0.0f}, {});
+            truthCameras.at(i) = cameras.at(i);
         }
     }
 }
@@ -346,8 +348,8 @@ void Trainer::train(bool densify) {
                 devMatView,
                 devMatProjView,
                 devCameraLocation,
-                tan(glm::radians(camera.degFovX) * 0.5f),
-                tan(glm::radians(camera.degFovY) * 0.5f),
+                tan(glm::radians(camera.fovDegY) * 0.5f),
+                tan(glm::radians(camera.fovDegY) * 0.5f),
                 false,
                 devRasterized,
                 nullptr,
@@ -384,8 +386,8 @@ void Trainer::train(bool densify) {
                 devMatView,
                 devMatProjView,
                 devCameraLocation,
-                tan(glm::radians(camera.degFovX) * 0.5f),
-                tan(glm::radians(camera.degFovY) * 0.5f),
+                tan(glm::radians(camera.fovDegY) * 0.5f),
+                tan(glm::radians(camera.fovDegY) * 0.5f),
                 nullptr, // TODO pass in from forward rasterizer to increase speed
                 geomBuffer,
                 binningBuffer,

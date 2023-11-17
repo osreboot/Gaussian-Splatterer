@@ -1,18 +1,18 @@
+#include "RtxHost.h"
+
 #include <fstream>
 #include <vector>
 
-#include <owl/owl.h>
 #include <stb/stb_image.h>
 #include <diff-gaussian-rasterization/third_party/glm/glm/glm.hpp>
-#include <diff-gaussian-rasterization/third_party/glm/glm/gtc/quaternion.hpp>
 
-#include "RtxHost.h"
 #include "RtxDevice.cuh"
+#include "Camera.h"
 
 using namespace owl;
 using namespace std;
 
-RtxHost::RtxHost(const owl::vec2i size) : size(size) {
+RtxHost::RtxHost(vec2i size) : size(size) {
     // Initialize OWL context so we can start loading resources
     context = owlContextCreate(nullptr, 1);
     OWLModule module = owlModuleCreate(context, RtxDevice_ptx);
@@ -160,11 +160,14 @@ void RtxHost::load(const string& pathModel, const string& pathTexture) {
     initialized = true;
 }
 
-void RtxHost::render(uint32_t* frameBuffer, const Camera& camera, owl::vec3f background, TruthCameras* cameras) {
-    owlRayGenSet1i(rayGen, "splatCamerasCount", (cameras && cameras->previewPerspective == -1) ? cameras->getCount() : 0);
+void RtxHost::render(uint32_t* frameBuffer, const Camera& camera, vec3f background, const vector<Camera>& cameras) {
+    owlRayGenSet1i(rayGen, "splatCamerasCount", (int)cameras.size());
 
-    if (cameras && cameras->pollInputUpdate()) {
-        OWLBuffer splatCamerasBuffer = owlDeviceBufferCreate(context, OWL_FLOAT3, cameras->getCount(), cameras->locations.data());
+    if (!cameras.empty()) {
+        vector<glm::vec3> cameraLocations;
+        for(const Camera& c : cameras) cameraLocations.push_back(c.location);
+
+        OWLBuffer splatCamerasBuffer = owlDeviceBufferCreate(context, OWL_FLOAT3, cameraLocations.size(), cameraLocations.data());
         owlRayGenSetBuffer(rayGen, "splatCameras", splatCamerasBuffer);
     }
 

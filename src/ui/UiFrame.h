@@ -1,13 +1,15 @@
 #pragma once
 
+#include <chrono>
 #include <wx/wx.h>
 
-#include "rtx/RtxHost.h"
-#include "Trainer.cuh"
-#include "TruthCameras.h"
-#include "UiPanelInput.h"
-#include "UiPanelOutput.h"
-#include "UiPanelTools.h"
+class Project;
+class RtxHost;
+class Trainer;
+
+class UiPanelViewInput;
+class UiPanelViewOutput;
+class UiPanelTools;
 
 class UiFrame : public wxFrame {
 
@@ -16,11 +18,12 @@ private:
 
     wxPanel* panel;
     wxBoxSizer* sizer;
+    wxBoxSizer* sizerViews;
 
     float autoTrainingBudget = 0.0f;
 
 public:
-    TruthCameras* truthCameras;
+    Project* project;
 
     RtxHost* rtx;
     Trainer* trainer;
@@ -32,8 +35,8 @@ public:
     wxMenu* menuFileSave;
     wxMenu* menuAbout;
 
-    UiPanelInput* panelInput;
-    UiPanelOutput* panelOutput;
+    UiPanelViewInput* panelInput;
+    UiPanelViewOutput* panelOutput;
     UiPanelTools* panelTools;
 
     bool autoTraining = false;
@@ -52,8 +55,10 @@ private:
     DECLARE_EVENT_TABLE();
 
     enum MenuIds {
+        FILE_SAVE_PROJECT,
         FILE_SAVE_SPLATS,
         FILE_SAVE_SETTINGS,
+        FILE_LOAD_PROJECT,
         FILE_LOAD_SPLATS,
         FILE_LOAD_SETTINGS,
         ABOUT_ABOUT

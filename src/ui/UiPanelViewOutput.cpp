@@ -1,8 +1,13 @@
-#include "UiPanelInput.h"
+#include "UiPanelViewOutput.h"
+
+#include "Config.h"
+#include "Camera.h"
+#include "Trainer.cuh"
 #include "UiFrame.h"
 
-UiPanelInput::UiPanelInput(wxWindow *parent) : wxGLCanvas(parent) {
-    context = new wxGLContext(this);
+using namespace std;
+
+UiPanelViewOutput::UiPanelViewOutput(wxWindow *parent, wxGLContext* context) : wxGLCanvas(parent), context(context) {
     wxGLCanvas::SetCurrent(*context);
 
     OWL_CUDA_CHECK(cudaMallocManaged(&frameBuffer, RENDER_RESOLUTION_X * RENDER_RESOLUTION_Y * sizeof(uint32_t)));
@@ -12,18 +17,14 @@ UiPanelInput::UiPanelInput(wxWindow *parent) : wxGLCanvas(parent) {
     OWL_CUDA_CHECK(cudaGraphicsGLRegisterImage(&textureCuda, textureFrameBuffer, GL_TEXTURE_2D, 0));
 }
 
-UiPanelInput::~UiPanelInput() {
-    delete context;
-}
-
-void UiPanelInput::render() {
+void UiPanelViewOutput::render() {
     wxGLCanvas::SetCurrent(*context);
 
     // Pre-update
     glClear(GL_COLOR_BUFFER_BIT);
 
     UiFrame* frame = dynamic_cast<UiFrame*>(GetParent()->GetParent());
-    frame->rtx->render(frameBuffer, frame->truthCameras->getPreviewCamera(), {0.0f, 0.0f, 0.0f}, frame->truthCameras);
+    frame->trainer->render(frameBuffer, Camera::getPreviewCamera(*frame->project));
 
     // Post-update
     OWL_CUDA_CHECK(cudaGraphicsMapResources(1, &textureCuda));
@@ -67,17 +68,17 @@ void UiPanelInput::render() {
     SwapBuffers();
 }
 
-void UiPanelInput::onPaint(wxPaintEvent& event) {
+void UiPanelViewOutput::onPaint(wxPaintEvent& event) {
     if (!IsShown()) return;
     render();
 }
 
-void UiPanelInput::onIdle(wxIdleEvent& event) {
+void UiPanelViewOutput::onIdle(wxIdleEvent& event) {
     render();
     event.RequestMore();
 }
 
-BEGIN_EVENT_TABLE(UiPanelInput, wxGLCanvas)
-EVT_PAINT(UiPanelInput::onPaint)
-EVT_IDLE(UiPanelInput::onIdle)
+BEGIN_EVENT_TABLE(UiPanelViewOutput, wxGLCanvas)
+EVT_PAINT(UiPanelViewOutput::onPaint)
+EVT_IDLE(UiPanelViewOutput::onIdle)
 END_EVENT_TABLE()

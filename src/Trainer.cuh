@@ -1,8 +1,11 @@
 #pragma once
 
-#include "TruthCameras.h"
-#include "ModelSplatsDevice.h"
-#include "rtx/RtxHost.h"
+#include <vector>
+
+class ModelSplatsDevice;
+class Camera;
+class Project;
+class RtxHost;
 
 class Trainer {
 
@@ -56,7 +59,7 @@ public:
 
     void render(uint32_t* frameBuffer, const Camera& camera);
 
-    void captureTruths(const TruthCameras& cameras, RtxHost& rtx);
+    void captureTruths(const Project& project, RtxHost& rtx);
 
     void train(int iterations);
     void train(bool densify);

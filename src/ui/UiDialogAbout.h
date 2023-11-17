@@ -1,11 +1,11 @@
 #pragma once
 
-#include "UiFrame.h"
+#include <wx/wx.h>
 
 class UiDialogAbout : public wxDialog {
 
 public:
-    UiDialogAbout(wxWindow* parent);
+    explicit UiDialogAbout(wxWindow* parent);
 
 private:
     void onButtonClose(wxCommandEvent& event);

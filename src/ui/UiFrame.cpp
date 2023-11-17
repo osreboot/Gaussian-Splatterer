@@ -1,22 +1,32 @@
 #include "UiFrame.h"
+
+#include "UiPanelViewInput.h"
+#include "UiPanelViewOutput.h"
+#include "UiPanelTools.h"
 #include "UiDialogAbout.h"
+
+#include "Config.h"
+#include "Project.h"
+#include "rtx/RtxHost.h"
+#include "Trainer.cuh"
 
 using namespace std;
 
 UiFrame::UiFrame() :
-        wxFrame(nullptr, wxID_ANY, "Gaussian Splatterer", wxDefaultPosition, {1280, 720}, wxDEFAULT_FRAME_STYLE) {
+        wxFrame(nullptr, wxID_ANY, "Gaussian Splatterer") {
     panel = new wxPanel(this);
-    sizer = new wxBoxSizer(wxHORIZONTAL);
+    sizer = new wxBoxSizer(wxVERTICAL);
     panel->SetSizerAndFit(sizer);
 
-    timeLastUpdate = chrono::high_resolution_clock::now();
-
-    truthCameras = new TruthCameras();
+    project = new Project();
 
     rtx = new RtxHost({RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y});
     rtx->load(R"(C:\Users\Calvin\Desktop\Archives\Development\Resources\Gecko 3d model\Splats\Gecko.obj)",
               R"(C:\Users\Calvin\Desktop\Archives\Development\Resources\Gecko 3d model\Splats\Gecko.BMP)");
+
     trainer = new Trainer();
+
+    timeLastUpdate = chrono::high_resolution_clock::now();
 
     menuBar = new wxMenuBar();
     SetMenuBar(menuBar);
@@ -31,8 +41,12 @@ UiFrame::UiFrame() :
     menuFile->AppendSeparator();
     menuFile->AppendSubMenu(menuFileSave, "Save");
     menuFile->AppendSubMenu(menuFileLoad, "Load");
+    menuFileSave->Append(FILE_SAVE_PROJECT, "Save Project");
+    menuFileSave->AppendSeparator();
     menuFileSave->Append(FILE_SAVE_SPLATS, "Save Splats");
     menuFileSave->Append(FILE_SAVE_SETTINGS, "Save Settings");
+    menuFileLoad->Append(FILE_LOAD_PROJECT, "Load Project");
+    menuFileLoad->AppendSeparator();
     menuFileLoad->Append(FILE_LOAD_SPLATS, "Load Splats");
     menuFileLoad->Append(FILE_LOAD_SETTINGS, "Load Settings");
 
@@ -42,23 +56,28 @@ UiFrame::UiFrame() :
 
     menuBar->Bind(wxEVT_COMMAND_TOOL_CLICKED, &UiFrame::onMenuButton, this);
 
-    panelInput = new UiPanelInput(panel);
-    panelInput->SetMinSize({256, 256});
-    sizer->Add(panelInput, wxSizerFlags(1).Shaped().Expand().Border());
+    sizerViews = new wxBoxSizer(wxHORIZONTAL);
+    sizer->Add(sizerViews, wxSizerFlags(1).Expand());
 
-    panelOutput = new UiPanelOutput(panel, panelInput->context);
+    panelInput = new UiPanelViewInput(panel);
+    panelInput->SetMinSize({256, 256});
+    sizerViews->Add(panelInput, wxSizerFlags().Shaped().Expand().Border());
+
+    panelOutput = new UiPanelViewOutput(panel, panelInput->context);
     panelOutput->SetMinSize({256, 256});
-    sizer->Add(panelOutput, wxSizerFlags(1).Shaped().Expand().Border());
+    sizerViews->Add(panelOutput, wxSizerFlags().Shaped().Expand().Border());
 
     panelTools = new UiPanelTools(panel);
-    sizer->Add(panelTools, wxSizerFlags(0).Border());
+    sizer->Add(panelTools, wxSizerFlags().Border());
 
     sizer->Fit(this);
 }
 
 UiFrame::~UiFrame() {
-    delete truthCameras;
+    delete project;
+
     delete rtx;
+    delete trainer;
 }
 
 void UiFrame::update() {
@@ -67,7 +86,7 @@ void UiFrame::update() {
     //delta = min(delta, 0.2f);
     timeLastUpdate = timeNow;
 
-    truthCameras->update(delta);
+    project->previewTimer += delta;
 
     if(autoTraining) {
         autoTrainingBudget = min(1.0f, autoTrainingBudget + delta * 100.0f);
@@ -76,12 +95,12 @@ void UiFrame::update() {
             autoTrainingBudget = 0.0f;
             if((trainer->iterations + 1) % 50 == 0) {
                 wxCommandEvent eventFake = wxCommandEvent(wxEVT_NULL, 0);
-                panelTools->onButtonCamerasRotRandom(eventFake);
-                panelTools->onButtonCamerasCapture(eventFake);
+                //panelTools->onButtonCamerasRotRandom(eventFake);
+                //panelTools->onButtonCamerasCapture(eventFake);
             }
             trainer->train((trainer->iterations + 1) % 200 == 0);
-            panelTools->updateIterationCount();
-            panelTools->updateSplatCount();
+            //panelTools->updateIterationCount();
+            //panelTools->updateSplatCount();
         }
     }
 }
