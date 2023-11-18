@@ -13,18 +13,24 @@ private:
 
     wxStaticBoxSizer* sizer;
 
-    wxBoxSizer* sizerAuto;
-    wxBoxSizer* sizerManual;
-
     wxButton* buttonAutoStart;
     wxButton* buttonAutoStop;
+
+    wxStaticText* textIntervalCapture;
+    wxStaticText* textIntervalDensify;
+    wxSpinCtrl* spinIntervalCapture;
+    wxSpinCtrl* spinIntervalDensify;
 
 public:
     UiPanelToolsTrain(wxWindow* parent);
 
     void refreshProject();
+    void refreshText();
 
     void onButtonAutoStart(wxCommandEvent& event);
     void onButtonAutoStop(wxCommandEvent& event);
+
+    void onSpinIntervalCapture(wxSpinEvent& event);
+    void onSpinIntervalDensify(wxSpinEvent& event);
 
 };

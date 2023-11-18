@@ -51,7 +51,7 @@ void UiPanelViewOutput::refreshProject() {
 
 void UiPanelViewOutput::refreshText() {
     textSplats->SetLabel(std::to_string(getFrame().trainer->model->count) + " / " +
-        std::to_string(getFrame().trainer->model->capacity) + " Gaussian splats");
+        std::to_string(getFrame().trainer->model->capacity) + " total splats");
     textIterations->SetLabel(std::to_string(getProject().iterations) + " training iterations");
 }
 

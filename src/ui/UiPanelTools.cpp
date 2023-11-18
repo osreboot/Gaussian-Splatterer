@@ -25,11 +25,11 @@ UiPanelTools::UiPanelTools(wxWindow *parent) : wxPanel(parent) {
     sizerStaticOutput = new wxStaticBoxSizer(wxVERTICAL, this, "4. Visualize Splats");
     sizer->Add(sizerStaticOutput, wxSizerFlags().Expand().Border());
 
-    checkBoxPreviewCamera = new wxCheckBox(this, wxID_ANY, "View Truth Perspective");
+    checkBoxPreviewCamera = new wxCheckBox(this, wxID_ANY, "View Truth Camera");
     checkBoxPreviewCamera->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &UiPanelTools::onCheckBoxPreviewCamera, this);
     sizerStaticOutput->Add(checkBoxPreviewCamera, wxSizerFlags().Border(wxDOWN | wxUP));
 
-    auto textCtrlPreviewCamera = new wxStaticText(this, wxID_ANY, "View Perspective Index");
+    auto textCtrlPreviewCamera = new wxStaticText(this, wxID_ANY, "View Camera");
     sizerStaticOutput->Add(textCtrlPreviewCamera, wxSizerFlags().Border(wxUP | wxLEFT | wxRIGHT));
     spinCtrlPreviewCamera = new wxSpinCtrl(this);
     spinCtrlPreviewCamera->SetMinSize({64, -1});

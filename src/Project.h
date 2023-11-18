@@ -20,13 +20,15 @@ public:
     } sphere1, sphere2;
 
     int iterations = 0;
+    int intervalCapture = 50;
+    int intervalDensify = 200;
 
     int previewIndex = -1;
     float previewTimer = 0.0f;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Project,
                                                 pathModel, pathTexture,
-                                                sphere1, sphere2, iterations,
+                                                sphere1, sphere2, iterations, intervalCapture, intervalDensify,
                                                 previewIndex, previewTimer);
 
 };

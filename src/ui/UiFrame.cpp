@@ -97,13 +97,18 @@ void UiFrame::update() {
 
         if(autoTrainingBudget >= 1.0f) {
             autoTrainingBudget = 0.0f;
-            if((project->iterations + 1) % 50 == 0) {
+
+            const bool capture = project->intervalCapture > 0 && project->iterations % project->intervalCapture == 0;
+            const bool densify = project->intervalDensify > 0 && project->iterations % project->intervalDensify == 0;
+
+            if(capture) {
                 wxCommandEvent eventFake = wxCommandEvent(wxEVT_NULL, 0);
                 panelTools->panelTruth->onButtonRandomRotate(eventFake);
                 panelTools->panelTruth->onButtonCapture(eventFake);
             }
-            trainer->train(*project, (project->iterations + 1) % 200 == 0);
+            trainer->train(*project, densify);
             panelOutput->refreshText();
+            panelTools->panelTrain->refreshText();
         }
     }
 }
