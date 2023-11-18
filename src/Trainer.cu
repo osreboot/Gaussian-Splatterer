@@ -247,14 +247,14 @@ void Trainer::captureTruths(const Project& project, RtxHost& rtx) {
     }
 }
 
-void Trainer::train(int iter) {
-    for(int i = 0; i < iter; i++) train(false);
+void Trainer::train(Project& project, int iter) {
+    for(int i = 0; i < iter; i++) train(project, false);
 }
 
-void Trainer::train(bool densify) {
+void Trainer::train(Project& project, bool densify) {
     assert(truths.size() > 0);
 
-    iterations++;
+    project.iterations++;
 
     if (model->count != lastCount) {
         cudaFree(devVarLocations);

@@ -22,6 +22,8 @@ private:
 public:
     UiPanelToolsTrain(wxWindow* parent);
 
+    void refreshProject();
+
     void onButtonAutoStart(wxCommandEvent& event);
     void onButtonAutoStop(wxCommandEvent& event);
 

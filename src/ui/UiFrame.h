@@ -47,6 +47,14 @@ public:
 private:
     void update();
 
+    void refreshProject();
+
+    void saveSettings(const std::string& path) const;
+    void saveSplats(const std::string& path) const;
+
+    void loadSettings(const std::string& path);
+    void loadSplats(const std::string& path);
+
     void onMenuButton(wxCommandEvent& event);
 
     void onPaint(wxPaintEvent& event);

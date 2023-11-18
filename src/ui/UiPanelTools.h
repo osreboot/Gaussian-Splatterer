@@ -25,6 +25,8 @@ public:
 
     UiPanelTools(wxWindow* parent);
 
+    void refreshProject();
+
     void refreshCameraCount();
 
     void onCheckBoxPreviewCamera(wxCommandEvent& event);

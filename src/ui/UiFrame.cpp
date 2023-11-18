@@ -1,5 +1,7 @@
 #include "UiFrame.h"
 
+#include <fstream>
+
 #include "UiPanelViewInput.h"
 #include "UiPanelViewOutput.h"
 #include "UiPanelTools.h"
@@ -20,10 +22,11 @@ UiFrame::UiFrame() :
 
     project = new Project();
     project->sphere2.fovDeg = 30.0f;
+    project->pathModel = R"(C:\Users\Calvin\Desktop\Archives\Development\Resources\Gecko 3d model\Splats\Gecko.obj)";
+    project->pathTexture = R"(C:\Users\Calvin\Desktop\Archives\Development\Resources\Gecko 3d model\Splats\Gecko.BMP)";
 
     rtx = new RtxHost({RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y});
-    rtx->load(R"(C:\Users\Calvin\Desktop\Archives\Development\Resources\Gecko 3d model\Splats\Gecko.obj)",
-              R"(C:\Users\Calvin\Desktop\Archives\Development\Resources\Gecko 3d model\Splats\Gecko.BMP)");
+    rtx->load(*project);
 
     trainer = new Trainer();
 
@@ -61,17 +64,17 @@ UiFrame::UiFrame() :
     sizer->Add(sizerViews, wxSizerFlags(1).Expand());
 
     panelInput = new UiPanelViewInput(panel);
-    panelInput->SetMinSize({256, 256});
-    sizerViews->Add(panelInput, wxSizerFlags().Shaped().Expand().Border());
+    sizerViews->Add(panelInput, wxSizerFlags(1).Expand().Border());
 
     panelOutput = new UiPanelViewOutput(panel, panelInput->context);
-    panelOutput->SetMinSize({256, 256});
-    sizerViews->Add(panelOutput, wxSizerFlags().Shaped().Expand().Border());
+    sizerViews->Add(panelOutput, wxSizerFlags(1).Expand().Border());
 
     panelTools = new UiPanelTools(panel);
     sizer->Add(panelTools, wxSizerFlags().Border());
 
     sizer->Fit(this);
+
+    refreshProject();
 }
 
 UiFrame::~UiFrame() {
@@ -94,27 +97,70 @@ void UiFrame::update() {
 
         if(autoTrainingBudget >= 1.0f) {
             autoTrainingBudget = 0.0f;
-            if((trainer->iterations + 1) % 50 == 0) {
+            if((project->iterations + 1) % 50 == 0) {
                 wxCommandEvent eventFake = wxCommandEvent(wxEVT_NULL, 0);
                 panelTools->panelTruth->onButtonRandomRotate(eventFake);
                 panelTools->panelTruth->onButtonCapture(eventFake);
             }
-            trainer->train((trainer->iterations + 1) % 200 == 0);
-            //TODO panelTools->updateIterationCount();
-            //TODO panelTools->updateSplatCount();
+            trainer->train(*project, (project->iterations + 1) % 200 == 0);
+            panelOutput->refreshText();
         }
     }
+}
+
+void UiFrame::refreshProject() {
+    // TODO load new model here
+    // TODO nuke trainer captures
+
+    // TODO stop auto training
+    // TODO stop auto training in nested classes
+
+    panelInput->refreshProject();
+    panelOutput->refreshProject();
+    panelTools->refreshProject();
+}
+
+void UiFrame::saveSettings(const std::string& path) const {
+    nlohmann::json j;
+    nlohmann::to_json(j, *project);
+
+    std::ofstream file(path);
+    file << j;
+}
+
+void UiFrame::saveSplats(const std::string& path) const {
+
+}
+
+void UiFrame::loadSettings(const std::string& path) {
+    nlohmann::json j;
+    std::ifstream file(path);
+    file >> j;
+    nlohmann::from_json(j, *project);
+    refreshProject();
+}
+
+void UiFrame::loadSplats(const std::string& path) {
+
 }
 
 void UiFrame::onMenuButton(wxCommandEvent& event) {
     if (event.GetId() == FILE_SAVE_SPLATS) {
         wxLogMessage("TODO");
     } else if (event.GetId() == FILE_SAVE_SETTINGS) {
-        wxLogMessage("TODO");
+
+        wxFileDialog dialog(this, "Save Settings", "", "settings", "JSON Files (*.json)|*.json", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+        if (dialog.ShowModal() == wxID_CANCEL) return;
+        saveSettings(dialog.GetPath().ToStdString());
+
     } else if (event.GetId() == FILE_LOAD_SPLATS) {
         wxLogMessage("TODO");
     } else if (event.GetId() == FILE_LOAD_SETTINGS) {
-        wxLogMessage("TODO");
+
+        wxFileDialog dialog(this, "Load Settings", "", "settings", "JSON Files (*.json)|*.json", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+        if (dialog.ShowModal() == wxID_CANCEL) return;
+        loadSettings(dialog.GetPath().ToStdString());
+
     } else if (event.GetId() == ABOUT_ABOUT) {
         UiDialogAbout dialog(this);
     }

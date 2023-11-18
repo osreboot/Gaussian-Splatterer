@@ -10,3 +10,6 @@
 [submodule "lib/diff-gaussian-rasterization"]
 	path = lib/diff-gaussian-rasterization
 	url = https://github.com/graphdeco-inria/diff-gaussian-rasterization.git
+[submodule "lib/json"]
+	path = lib/json
+	url = https://github.com/nlohmann/json.git

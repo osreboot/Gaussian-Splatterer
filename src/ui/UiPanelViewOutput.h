@@ -1,18 +1,31 @@
 #pragma once
 
-#include "OpenGLIncludes.h"
+#include "UiFrame.h"
+#include "FboRenderer.h"
+#include "Project.h"
 
-class UiPanelViewOutput : public wxGLCanvas {
+class UiPanelViewOutput : public wxPanel {
 
 private:
-    GLuint textureFrameBuffer = {0};
-    cudaGraphicsResource_t textureCuda = nullptr;
-    uint32_t* frameBuffer = nullptr;
+    UiFrame& getFrame() const;
+    Project& getProject() const;
+
+    wxBoxSizer* sizer;
+
+    wxGLCanvas* canvas;
+    FboRenderer* renderer;
+
+    wxStaticText* textIterations;
+    wxStaticText* textSplats;
 
 public:
     wxGLContext* context;
 
     UiPanelViewOutput(wxWindow *parent, wxGLContext* context);
+    ~UiPanelViewOutput() override;
+
+    void refreshProject();
+    void refreshText();
 
     void render();
 

@@ -32,7 +32,6 @@ private:
 
     wxButton* buttonRandomRotate;
     wxButton* buttonCapture;
-    wxStaticText* textStatus;
 
     enum CameraSphereIds {
         S1_COUNT,
@@ -49,6 +48,8 @@ private:
 
 public:
     UiPanelToolsTruth(wxWindow* parent);
+
+    void refreshProject();
 
     void onSpin(wxSpinEvent& event);
     void onSpinDouble(wxSpinDoubleEvent& event);

@@ -3,6 +3,8 @@ target_sources(${PROJECT_NAME} PRIVATE
         Camera.cpp
         Camera.h
         Config.h
+        FboRenderer.cpp
+        FboRenderer.h
         ModelSplatsDevice.cpp
         ModelSplatsDevice.h
         ModelSplatsHost.cpp

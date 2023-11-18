@@ -32,14 +32,22 @@ UiPanelTools::UiPanelTools(wxWindow *parent) : wxPanel(parent) {
     auto textCtrlPreviewCamera = new wxStaticText(this, wxID_ANY, "View Perspective Index");
     sizerStaticOutput->Add(textCtrlPreviewCamera, wxSizerFlags().Border(wxUP | wxLEFT | wxRIGHT));
     spinCtrlPreviewCamera = new wxSpinCtrl(this);
-    spinCtrlPreviewCamera->SetRange(1, Camera::getCamerasCount(getProject()));
-    spinCtrlPreviewCamera->SetValue(1);
     spinCtrlPreviewCamera->SetMinSize({64, -1});
     spinCtrlPreviewCamera->Bind(wxEVT_COMMAND_SPINCTRL_UPDATED, &UiPanelTools::onSpinCtrlPreviewCamera, this);
     spinCtrlPreviewCamera->Disable();
     sizerStaticOutput->Add(spinCtrlPreviewCamera, wxSizerFlags().Border(wxDOWN | wxLEFT | wxRIGHT));
 
     SetSizerAndFit(sizer);
+}
+
+void UiPanelTools::refreshProject() {
+    checkBoxPreviewCamera->SetValue(getProject().previewIndex != -1);
+    spinCtrlPreviewCamera->Enable(getProject().previewIndex != -1);
+    spinCtrlPreviewCamera->SetValue(getProject().previewIndex + 1);
+    refreshCameraCount();
+
+    panelTruth->refreshProject();
+    panelTrain->refreshProject();
 }
 
 void UiPanelTools::refreshCameraCount() {

@@ -46,8 +46,6 @@ public:
     std::vector<uint32_t*> truthFrameBuffersB;
     std::vector<Camera> truthCameras;
 
-    int iterations = 0;
-
     Trainer();
 
     Trainer(const Trainer&) = delete;
@@ -61,7 +59,7 @@ public:
 
     void captureTruths(const Project& project, RtxHost& rtx);
 
-    void train(int iterations);
-    void train(bool densify);
+    void train(Project& project, int iterations);
+    void train(Project& project, bool densify);
 
 };

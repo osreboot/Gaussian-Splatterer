@@ -28,6 +28,8 @@ UiPanelToolsTrain::UiPanelToolsTrain(wxWindow* parent) : wxPanel(parent) {
     SetSizerAndFit(sizer);
 }
 
+void UiPanelToolsTrain::refreshProject() {}
+
 void UiPanelToolsTrain::onButtonAutoStart(wxCommandEvent &event) {
     getFrame().autoTraining = true;
     getFrame().panelTools->panelTruth->Disable();

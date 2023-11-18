@@ -59,13 +59,13 @@ static OWLTexture loadTexture(OWLContext context, const string& path) {
     return texture;
 }
 
-void RtxHost::load(const string& pathModel, const string& pathTexture) {
+void RtxHost::load(const Project& project) {
     vector<vec3f> vertices;
     vector<vec3i> triangles;
     vector<vec2f> textureCoordsRefVec;
     vector<int> textureCoordsVec;
 
-    ifstream ifs(pathModel);
+    ifstream ifs(project.pathModel);
     string line;
     while(getline(ifs, line)) {
         istringstream iss(line);
@@ -134,7 +134,7 @@ void RtxHost::load(const string& pathModel, const string& pathTexture) {
     }
 
     vector<OWLTexture> textures;
-    textures.push_back(loadTexture(context, pathTexture));
+    textures.push_back(loadTexture(context, project.pathTexture));
 
     OWLBuffer vertexBuffer = owlDeviceBufferCreate(context, OWL_FLOAT3, vertices.size(), vertices.data());
     OWLBuffer triangleBuffer = owlDeviceBufferCreate(context, OWL_INT3, triangles.size(), triangles.data());

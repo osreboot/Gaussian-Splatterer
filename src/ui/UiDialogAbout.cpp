@@ -16,14 +16,16 @@ UiDialogAbout::UiDialogAbout(wxWindow* parent) : wxDialog(parent, wxID_ANY, "Abo
                            "<p style='text-align: center'>https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/</p>"
                            "<br/>&nbsp;"
                            "<br/>&nbsp;"
-                           "<p style='text-align: center'>Other project dependencies:</p>"
+                           "<p style='text-align: center'>Other dependencies:</p>"
                            "<p style='text-align: center'>OptiX Wrapper Library | https://github.com/owl-project/owl</p>"
                            "<p style='text-align: center'>wxWidgets | https://github.com/wxWidgets/wxWidgets</p>"
+                           "<p style='text-align: center'>JSON for Modern C++ | https://github.com/nlohmann/json</p>"
+                           "<p style='text-align: center'>stb | https://github.com/nothings/stb</p>"
                            "</body>";
 
     wxHtmlWindow* html = new wxHtmlWindow(this);
     html->SetPage(htmlPage);
-    html->SetMinSize({512, 328});
+    html->SetMinSize({512, 448});
     sizer->Add(html, wxSizerFlags(1).Border());
 
     wxButton* buttonClose = new wxButton(this, wxID_ANY, "Ok");

@@ -3,6 +3,8 @@
 #include <owl/owl.h>
 #include <owl/common.h>
 
+#include "Project.h"
+
 class Camera;
 
 extern "C" char RtxDevice_ptx[];
@@ -22,7 +24,7 @@ private:
 public:
     explicit RtxHost(owl::vec2i size);
 
-    void load(const std::string& pathModel, const std::string& pathTexture);
+    void load(const Project& project);
 
     void render(uint32_t* frameBuffer, const Camera& camera, owl::vec3f background, const std::vector<Camera>& cameras);
 
