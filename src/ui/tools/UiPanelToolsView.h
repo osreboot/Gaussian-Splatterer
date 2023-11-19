@@ -16,6 +16,7 @@ private:
 
     wxCheckBox* checkPreviewCamera;
     wxSpinCtrl* spinPreviewCamera;
+    wxSpinCtrl* spinPreviewRtSamples;
 
     wxSpinCtrl* spinRenderResX;
     wxSpinCtrl* spinRenderResY;
@@ -29,8 +30,9 @@ public:
     void refreshProject();
     void refreshCameraCount();
 
-    void onCheckBoxPreviewCamera(wxCommandEvent& event);
-    void onSpinCtrlPreviewCamera(wxSpinEvent& event);
+    void onCheckPreviewCamera(wxCommandEvent& event);
+    void onSpinPreviewCamera(wxSpinEvent& event);
+    void onSpinPreviewRtSamples(wxSpinEvent& event);
 
     void onSpinRenderRes(wxSpinEvent& event);
 

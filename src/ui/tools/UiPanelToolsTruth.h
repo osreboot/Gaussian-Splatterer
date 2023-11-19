@@ -30,6 +30,7 @@ private:
     wxSpinCtrlDouble* spinSphere2RotX;
     wxSpinCtrlDouble* spinSphere2RotY;
 
+    wxSpinCtrl* spinRtSamples;
     wxButton* buttonRandomRotate;
     wxButton* buttonCapture;
 
@@ -54,7 +55,8 @@ public:
     void onSpin(wxSpinEvent& event);
     void onSpinDouble(wxSpinDoubleEvent& event);
 
-    void onButtonRandomRotate(wxCommandEvent& event);
+    void onSpinRtSamples(wxSpinEvent& event);
     void onButtonCapture(wxCommandEvent& event);
+    void onButtonRandomRotate(wxCommandEvent& event);
 
 };

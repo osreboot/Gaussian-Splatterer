@@ -19,19 +19,23 @@ public:
         NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(CameraSphere, count, distance, fovDeg, rotX, rotY);
     } sphere1, sphere2;
 
+    int rtSamples = 100;
+
     int iterations = 0;
     int intervalCapture = 50;
     int intervalDensify = 200;
 
     int previewIndex = -1;
     float previewTimer = 0.0f;
+    int previewRtSamples = 50;
 
     int renderResX = 2048;
     int renderResY = 2048;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Project,
                                                 pathModel, pathTexture,
-                                                sphere1, sphere2, iterations, intervalCapture, intervalDensify,
-                                                previewIndex, previewTimer, renderResX, renderResY);
+                                                sphere1, sphere2, rtSamples,
+                                                iterations, intervalCapture, intervalDensify,
+                                                previewIndex, previewTimer, previewRtSamples, renderResX, renderResY);
 
 };

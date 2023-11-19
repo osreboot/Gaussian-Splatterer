@@ -34,6 +34,7 @@ RtxHost::RtxHost() {
             {"frameBuffer", OWL_RAW_POINTER, OWL_OFFSETOF(RayGenerator, frameBuffer)},
             {"size", OWL_INT2, OWL_OFFSETOF(RayGenerator, size)},
             {"background", OWL_FLOAT3, OWL_OFFSETOF(RayGenerator, background)},
+            {"samples", OWL_INT, OWL_OFFSETOF(RayGenerator, samples)},
             {"worldHandle", OWL_GROUP, OWL_OFFSETOF(RayGenerator, worldHandle)},
             {"cameraLocation", OWL_FLOAT3, OWL_OFFSETOF(RayGenerator, cameraLocation)},
             {"cameraMatrix", OWL_BUFPTR, OWL_OFFSETOF(RayGenerator, cameraMatrix)},
@@ -160,7 +161,7 @@ void RtxHost::load(const Project& project) {
     initialized = true;
 }
 
-void RtxHost::render(uint32_t* frameBuffer, owl::vec2i size, const Camera& camera, vec3f background, const vector<Camera>& cameras) {
+void RtxHost::render(uint32_t* frameBuffer, owl::vec2i size, const Camera& camera, vec3f background, int samples, const vector<Camera>& cameras) {
     owlRayGenSet1i(rayGen, "splatCamerasCount", (int)cameras.size());
 
     if (!cameras.empty()) {
@@ -177,6 +178,7 @@ void RtxHost::render(uint32_t* frameBuffer, owl::vec2i size, const Camera& camer
         owlRayGenSet1ul(rayGen, "frameBuffer", (uint64_t)frameBuffer);
         owlRayGenSet2i(rayGen, "size", size.x, size.y);
         owlRayGenSet3f(rayGen, "background", (const owl3f&)background);
+        owlRayGenSet1i(rayGen, "samples", samples);
         owlRayGenSet3f(rayGen, "cameraLocation", (const owl3f&)camera.location);
         glm::mat4 cameraMatrix = glm::inverse(camera.getProjection((float)size.x / (float)size.y) * camera.getView());
         owlRayGenSetBuffer(rayGen, "cameraMatrix", owlDeviceBufferCreate(context, OWL_FLOAT, 16, &cameraMatrix[0]));

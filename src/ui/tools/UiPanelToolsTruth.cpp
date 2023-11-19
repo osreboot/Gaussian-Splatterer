@@ -119,14 +119,21 @@ UiPanelToolsTruth::UiPanelToolsTruth(wxWindow* parent) : wxPanel(parent) {
     sizerControls = new wxBoxSizer(wxVERTICAL);
     sizer->Add(sizerControls);
 
+    sizerControls->Add(new wxStaticText(this, wxID_ANY, "RT Samples"), wxSizerFlags().Border(wxUP | wxLEFT | wxRIGHT));
+    spinRtSamples = new wxSpinCtrl(this);
+    spinRtSamples->SetRange(1, 200000);
+    spinRtSamples->SetMinSize({64, -1});
+    spinRtSamples->Bind(wxEVT_COMMAND_SPINCTRL_UPDATED, &UiPanelToolsTruth::onSpinRtSamples, this);
+    sizerControls->Add(spinRtSamples, wxSizerFlags().Border(wxDOWN | wxLEFT | wxRIGHT));
+
     buttonCapture = new wxButton(this, wxID_ANY, "Capture");
-    buttonCapture->SetMinSize({-1, 64});
+    buttonCapture->SetMinSize({-1, 40});
     buttonCapture->Bind(wxEVT_COMMAND_BUTTON_CLICKED, &UiPanelToolsTruth::onButtonCapture, this);
-    sizerControls->Add(buttonCapture, wxSizerFlags().Expand().Border());
+    sizerControls->Add(buttonCapture, wxSizerFlags().Expand().Border(wxUP | wxLEFT | wxRIGHT));
 
     buttonRandomRotate = new wxButton(this, wxID_ANY, "Randomize Offset");
     buttonRandomRotate->Bind(wxEVT_COMMAND_BUTTON_CLICKED, &UiPanelToolsTruth::onButtonRandomRotate, this);
-    sizerControls->Add(buttonRandomRotate, wxSizerFlags().Expand().Border());
+    sizerControls->Add(buttonRandomRotate, wxSizerFlags().Expand().Border(wxDOWN | wxLEFT | wxRIGHT));
 
 
 
@@ -149,6 +156,8 @@ void UiPanelToolsTruth::refreshProject() {
     spinSphere2Fov->SetValue(getProject().sphere2.fovDeg);
     spinSphere2RotX->SetValue(getProject().sphere2.rotX);
     spinSphere2RotY->SetValue(getProject().sphere2.rotY);
+
+    spinRtSamples->SetValue(getProject().rtSamples);
 }
 
 void UiPanelToolsTruth::onSpin(wxSpinEvent& event) {
@@ -172,15 +181,19 @@ void UiPanelToolsTruth::onSpinDouble(wxSpinDoubleEvent& event) {
     }
 }
 
-void UiPanelToolsTruth::onButtonRandomRotate(wxCommandEvent& event) {
-    spinSphere1RotX->SetValue(getProject().sphere1.rotX = ((float)rand() / (float)RAND_MAX) * 360.0f);
-    spinSphere1RotY->SetValue(getProject().sphere1.rotY = ((float)rand() / (float)RAND_MAX) * 360.0f);
-    spinSphere2RotX->SetValue(getProject().sphere2.rotX = ((float)rand() / (float)RAND_MAX) * 360.0f);
-    spinSphere2RotY->SetValue(getProject().sphere2.rotY = ((float)rand() / (float)RAND_MAX) * 360.0f);
+void UiPanelToolsTruth::onSpinRtSamples(wxSpinEvent& event) {
+    getProject().rtSamples = event.GetValue();
 }
 
 void UiPanelToolsTruth::onButtonCapture(wxCommandEvent& event) {
     getFrame().trainer->captureTruths(getProject(), *getFrame().rtx);
     getFrame().panelInput->refreshText();
     if(!getFrame().autoTraining) getFrame().panelTools->panelTrain->Enable();
+}
+
+void UiPanelToolsTruth::onButtonRandomRotate(wxCommandEvent& event) {
+    spinSphere1RotX->SetValue(getProject().sphere1.rotX = ((float)rand() / (float)RAND_MAX) * 360.0f);
+    spinSphere1RotY->SetValue(getProject().sphere1.rotY = ((float)rand() / (float)RAND_MAX) * 360.0f);
+    spinSphere2RotX->SetValue(getProject().sphere2.rotX = ((float)rand() / (float)RAND_MAX) * 360.0f);
+    spinSphere2RotY->SetValue(getProject().sphere2.rotY = ((float)rand() / (float)RAND_MAX) * 360.0f);
 }

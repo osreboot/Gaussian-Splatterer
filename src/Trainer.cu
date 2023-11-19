@@ -238,12 +238,12 @@ void Trainer::captureTruths(const Project& project, RtxHost& rtx) {
         for (const Camera& camera : Camera::getCameras(project)) {
             uint32_t* frameBufferW;
             cudaMalloc(&frameBufferW, RENDER_RESOLUTION_X * RENDER_RESOLUTION_Y * sizeof(uint32_t));
-            rtx.render(frameBufferW, {RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y}, camera, {1.0f, 1.0f, 1.0f}, {});
+            rtx.render(frameBufferW, {RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y}, camera, {1.0f, 1.0f, 1.0f}, project.rtSamples, {});
             truthFrameBuffersW.push_back(frameBufferW);
 
             uint32_t* frameBufferB;
             cudaMalloc(&frameBufferB, RENDER_RESOLUTION_X * RENDER_RESOLUTION_Y * sizeof(uint32_t));
-            rtx.render(frameBufferB, {RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y}, camera, {0.0f, 0.0f, 0.0f}, {});
+            rtx.render(frameBufferB, {RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y}, camera, {0.0f, 0.0f, 0.0f}, project.rtSamples, {});
             truthFrameBuffersB.push_back(frameBufferB);
 
             truthCameras.push_back(camera);
@@ -251,8 +251,8 @@ void Trainer::captureTruths(const Project& project, RtxHost& rtx) {
     } else {
         std::vector<Camera> cameras = Camera::getCameras(project);
         for (int i = 0; i < cameras.size(); i++) {
-            rtx.render(truthFrameBuffersW.at(i), {RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y}, cameras.at(i), {1.0f, 1.0f, 1.0f}, {});
-            rtx.render(truthFrameBuffersB.at(i), {RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y}, cameras.at(i), {0.0f, 0.0f, 0.0f}, {});
+            rtx.render(truthFrameBuffersW.at(i), {RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y}, cameras.at(i), {1.0f, 1.0f, 1.0f}, project.rtSamples, {});
+            rtx.render(truthFrameBuffersB.at(i), {RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y}, cameras.at(i), {0.0f, 0.0f, 0.0f}, project.rtSamples, {});
             truthCameras.at(i) = cameras.at(i);
         }
     }

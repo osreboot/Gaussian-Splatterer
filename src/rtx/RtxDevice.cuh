@@ -4,7 +4,6 @@
 #include <owl/common/math/random.h>
 #include <cuda_runtime.h>
 
-#define PROGRAM_SAMPLES 50
 #define PROGRAM_EXPOSURE_FACTOR 1.0f
 #define SPLAT_CAMERA_DOT_SIZE 0.025f
 
@@ -31,6 +30,7 @@ struct RayGenerator {
     uint32_t* frameBuffer;
     owl::vec2i size;
     owl::vec3f background;
+    int samples;
 
     OptixTraversableHandle worldHandle;
 

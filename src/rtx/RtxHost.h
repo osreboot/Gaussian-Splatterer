@@ -24,6 +24,6 @@ public:
 
     void load(const Project& project);
 
-    void render(uint32_t* frameBuffer, owl::vec2i size, const Camera& camera, owl::vec3f background, const std::vector<Camera>& cameras);
+    void render(uint32_t* frameBuffer, owl::vec2i size, const Camera& camera, owl::vec3f background, int samples, const std::vector<Camera>& cameras);
 
 };

@@ -58,12 +58,13 @@ OPTIX_RAYGEN_PROGRAM(rayGenProgram)() {
     PerRayData prd;
 
     // Cast rays to fulfill the number of required samples
-    for(int i = 0; i < PROGRAM_SAMPLES; i++){
+    for(int i = 0; i < rayGen.samples; i++){
         // Create ray from camera
         Ray ray;
         ray.origin = rayGen.cameraLocation;
 
-        const vec3f viewFarZ = vec3f((pixel.x * 2.0 / rayGen.size.x) - 1.0f, (pixel.y * 2.0 / rayGen.size.y) - 1.0f, 1.0f);
+        const vec2f pixelFine = vec2f(pixel) + vec2f(prd.random(), prd.random()) + vec2f(0.5);
+        const vec3f viewFarZ = vec3f((pixelFine.x * 2.0 / rayGen.size.x) - 1.0f, (pixelFine.y * 2.0 / rayGen.size.y) - 1.0f, 1.0f);
         vec4f rayFarZ = vec4f(viewFarZ.x * rayGen.cameraMatrix[0] + viewFarZ.y * rayGen.cameraMatrix[4] + viewFarZ.z * rayGen.cameraMatrix[8] + rayGen.cameraMatrix[12],
                               viewFarZ.x * rayGen.cameraMatrix[1] + viewFarZ.y * rayGen.cameraMatrix[5] + viewFarZ.z * rayGen.cameraMatrix[9] + rayGen.cameraMatrix[13],
                               viewFarZ.x * rayGen.cameraMatrix[2] + viewFarZ.y * rayGen.cameraMatrix[6] + viewFarZ.z * rayGen.cameraMatrix[10] + rayGen.cameraMatrix[14],
@@ -82,7 +83,7 @@ OPTIX_RAYGEN_PROGRAM(rayGenProgram)() {
         color += colorOut;
     }
 
-    color /= (float)PROGRAM_SAMPLES;
+    color /= (float)rayGen.samples;
 
     if (prd.splatTouchesCamera) color = vec3f(1.0f) - color;
 
