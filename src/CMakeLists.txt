@@ -17,12 +17,12 @@ target_sources(${PROJECT_NAME} PRIVATE
         Trainer.cuh
         rtx/RtxHost.cpp
         rtx/RtxHost.h
+        ui/dialog/UiDialogAbout.cpp
+        ui/dialog/UiDialogAbout.h
         ui/tools/UiPanelToolsTrain.cpp
         ui/tools/UiPanelToolsTrain.h
         ui/tools/UiPanelToolsTruth.cpp
         ui/tools/UiPanelToolsTruth.h
-        ui/UiDialogAbout.cpp
-        ui/UiDialogAbout.h
         ui/UiFrame.cpp
         ui/UiFrame.h
         ui/UiPanelViewInput.cpp

@@ -1,14 +1,17 @@
 #include "UiFrame.h"
 
 #include <fstream>
+#include <wx/progdlg.h>
 
 #include "UiPanelViewInput.h"
 #include "UiPanelViewOutput.h"
 #include "UiPanelTools.h"
-#include "UiDialogAbout.h"
+#include "dialog/UiDialogAbout.h"
 
 #include "Config.h"
 #include "Project.h"
+#include "ModelSplatsDevice.h"
+#include "ModelSplatsHost.h"
 #include "rtx/RtxHost.h"
 #include "Trainer.cuh"
 
@@ -134,37 +137,159 @@ void UiFrame::saveSettings(const std::string& path) const {
 }
 
 void UiFrame::saveSplats(const std::string& path) const {
+    wxProgressDialog dialog("Saving Gaussian Splats", "Writing splats to \"" + path + "\"...", trainer->model->count + 1000, panel, wxPD_AUTO_HIDE);
+    ModelSplatsHost model(*trainer->model);
 
+    int progress = 1000;
+    dialog.Update(progress);
+
+    std::ofstream file(path);
+    for (int i = 0; i < model.count; i++) {
+        file << "v " << model.locations[i * 3] << " " << model.locations[i * 3 + 1] << " " << model.locations[i * 3 + 2] << "\n";
+
+        file << "sh";
+        for (int f = 0; f < model.shCoeffs * 3; f++) {
+            file << " " << model.shs[i * 3 * model.shCoeffs + f];
+        }
+        file << "\n";
+
+        file << "s " << model.scales[i * 3] << " " << model.scales[i * 3 + 1] << " " << model.scales[i * 3 + 2] << "\n";
+        file << "a " << model.opacities[i] << "\n";
+        file << "r " << model.rotations[i * 4] << " " << model.rotations[i * 4 + 1] << " " << model.rotations[i * 4 + 2] << " " << model.rotations[i * 4 + 3] << "\n";
+
+        dialog.Update(++progress);
+    }
 }
 
 void UiFrame::loadSettings(const std::string& path) {
+    if (!std::filesystem::exists(path)) {
+        wxMessageDialog dialog(this, "Failed to load settings file at \"" + path + "\"!", "Load Failed!", wxICON_ERROR);
+        dialog.ShowModal();
+        return;
+    }
+
     nlohmann::json j;
     std::ifstream file(path);
     file >> j;
     nlohmann::from_json(j, *project);
-    refreshProject();
 }
 
 void UiFrame::loadSplats(const std::string& path) {
+    if (!std::filesystem::exists(path)) {
+        wxMessageDialog dialog(this, "Failed to load splats file at \"" + path + "\"!", "Load Failed!", wxICON_ERROR);
+        dialog.ShowModal();
+        return;
+    }
 
+    // Count the number of lines in the file so we can get a progress estimate
+    std::ifstream fileLines(path);
+    int linesCount = (int)std::count(std::istreambuf_iterator<char>(fileLines), std::istreambuf_iterator<char>(), '\n');
+
+    wxProgressDialog dialog("Loading Gaussian Splats", "Loading splats from \"" + path + "\"...", linesCount + 2000, panel, wxPD_AUTO_HIDE);
+
+    int progress = 0;
+
+    std::optional<int> shCoeffs = nullopt;
+
+    std::vector<float> locations;
+    std::vector<float> shs;
+    std::vector<float> scales;
+    std::vector<float> opacities;
+    std::vector<float> rotations;
+
+    std::ifstream file(path);
+    std::string line;
+    while (std::getline(file, line)) {
+        std::istringstream iss(line);
+        std::string prefix;
+        iss >> prefix;
+
+        if (prefix == "v") {
+            for (int f = 0; f < 3; f++) {
+                float x;
+                iss >> x;
+                locations.push_back(x);
+            }
+        } else if (prefix == "sh") {
+            int shCoeffsCount = 0;
+            float x;
+            while (iss >> x) {
+                shs.push_back(x);
+                shCoeffsCount++;
+            }
+            if (!shCoeffs) shCoeffs = shCoeffsCount;
+            else assert(shCoeffs == shCoeffsCount);
+        } else if (prefix == "s") {
+            for (int f = 0; f < 3; f++) {
+                float x;
+                iss >> x;
+                scales.push_back(x);
+            }
+        } else if (prefix == "a") {
+            float x;
+            iss >> x;
+            opacities.push_back(x);
+        } else if (prefix == "r") {
+            for (int f = 0; f < 4; f++) {
+                float x;
+                iss >> x;
+                rotations.push_back(x);
+            }
+        }
+
+        dialog.Update(++progress);
+    }
+
+    ModelSplatsHost modelHost(locations, shs, scales, opacities, rotations);
+
+    progress += 1000;
+    dialog.Update(progress);
+
+    delete trainer->model;
+    trainer->model = new ModelSplatsDevice(modelHost);
 }
 
 void UiFrame::onMenuButton(wxCommandEvent& event) {
-    if (event.GetId() == FILE_SAVE_SPLATS) {
-        wxLogMessage("TODO");
+    if (event.GetId() == FILE_SAVE_PROJECT) {
+
+        wxDirDialog dialog(this, "Save Project", "");
+        if (dialog.ShowModal() == wxID_CANCEL) return;
+        saveSettings(dialog.GetPath().ToStdString() + "\\settings.json");
+        saveSplats(dialog.GetPath().ToStdString() + "\\splats.gobj");
+
+    }else if (event.GetId() == FILE_SAVE_SPLATS) {
+
+        wxFileDialog dialog(this, "Save Gaussian Splats", "", "splats", "Gaussian OBJ Files (*.gobj)|*.gobj", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+        if (dialog.ShowModal() == wxID_CANCEL) return;
+        saveSplats(dialog.GetPath().ToStdString());
+
     } else if (event.GetId() == FILE_SAVE_SETTINGS) {
 
         wxFileDialog dialog(this, "Save Settings", "", "settings", "JSON Files (*.json)|*.json", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
         if (dialog.ShowModal() == wxID_CANCEL) return;
         saveSettings(dialog.GetPath().ToStdString());
 
+    } else if (event.GetId() == FILE_LOAD_PROJECT) {
+
+        wxDirDialog dialog(this, "Load Project", "", wxDD_DIR_MUST_EXIST);
+        if (dialog.ShowModal() == wxID_CANCEL) return;
+        loadSettings(dialog.GetPath().ToStdString() + "\\settings.json");
+        loadSplats(dialog.GetPath().ToStdString() + "\\splats.gobj");
+        refreshProject();
+
     } else if (event.GetId() == FILE_LOAD_SPLATS) {
-        wxLogMessage("TODO");
+
+        wxFileDialog dialog(this, "Load Gaussian Splats", "", "splats", "Gaussian OBJ Files (*.gobj)|*.gobj", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+        if (dialog.ShowModal() == wxID_CANCEL) return;
+        loadSplats(dialog.GetPath().ToStdString());
+        refreshProject();
+
     } else if (event.GetId() == FILE_LOAD_SETTINGS) {
 
         wxFileDialog dialog(this, "Load Settings", "", "settings", "JSON Files (*.json)|*.json", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
         if (dialog.ShowModal() == wxID_CANCEL) return;
         loadSettings(dialog.GetPath().ToStdString());
+        refreshProject();
 
     } else if (event.GetId() == ABOUT_ABOUT) {
         UiDialogAbout dialog(this);

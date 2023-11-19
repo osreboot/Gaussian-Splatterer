@@ -22,6 +22,9 @@ public:
 
     ModelSplatsHost(int capacity, int shDegree, int shCoeffs);
     explicit ModelSplatsHost(const ModelSplatsDevice& device);
+    ModelSplatsHost(const std::vector<float>& locationsArg, const std::vector<float>& shsArg,
+                    const std::vector<float>& scalesArg, const std::vector<float>& opacitiesArg,
+                    const std::vector<float>& rotationsArg);
 
     ModelSplatsHost(const ModelSplatsHost&) = delete;
     ModelSplatsHost& operator=(const ModelSplatsHost&) = delete;

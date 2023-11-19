@@ -25,6 +25,36 @@ ModelSplatsHost::ModelSplatsHost(const ModelSplatsDevice& device) :
     cudaMemcpy(rotations, device.devRotations, count * 4 * sizeof(float), cudaMemcpyDeviceToHost);
 }
 
+ModelSplatsHost::ModelSplatsHost(const std::vector<float>& locationsArg, const std::vector<float>& shsArg,
+                                 const std::vector<float>& scalesArg, const std::vector<float>& opacitiesArg,
+                                 const std::vector<float>& rotationsArg) {
+    capacity = 1000000;
+    while (capacity < locationsArg.size() / 3) capacity *= 10;
+
+    count = (int)locationsArg.size() / 3;
+
+    shDegree = (((int)shsArg.size() / (3 * count)) - 1) / 3;
+    shCoeffs = ((int)shsArg.size() / (3 * count));
+
+    assert(locationsArg.size() == count * 3 &&
+        shsArg.size() == count * 3 * shCoeffs &&
+        scalesArg.size() == count * 3 &&
+        opacitiesArg.size() == count &&
+        rotationsArg.size() == count * 4);
+
+    locations = new float[capacity * 3];
+    shs = new float[capacity * 3 * shCoeffs];
+    scales = new float[capacity * 3];
+    opacities = new float[capacity];
+    rotations = new float[capacity * 4];
+
+    memcpy(locations, locationsArg.data(), count * 3 * sizeof(float));
+    memcpy(shs, shsArg.data(), count * 3 * shCoeffs * sizeof(float));
+    memcpy(scales, scalesArg.data(), count * 3 * sizeof(float));
+    memcpy(opacities, opacitiesArg.data(), count * sizeof(float));
+    memcpy(rotations, rotationsArg.data(), count * 4 * sizeof(float));
+}
+
 ModelSplatsHost::~ModelSplatsHost() {
     delete[] locations;
     delete[] shs;
