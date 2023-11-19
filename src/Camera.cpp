@@ -72,6 +72,6 @@ glm::mat4 Camera::getView() const {
     return -glm::lookAt(location, target, up);
 }
 
-glm::mat4 Camera::getProjection() const {
-    return glm::perspective(glm::radians(fovDegY), (float)RENDER_RESOLUTION_X / (float)RENDER_RESOLUTION_Y, 0.1f, 100.0f);
+glm::mat4 Camera::getProjection(float aspect) const {
+    return glm::perspective(glm::radians(fovDegY), aspect, 0.1f, 100.0f);
 }

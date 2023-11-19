@@ -21,6 +21,6 @@ public:
     Camera(const glm::vec3& location, const glm::vec3& target, float fovDegY);
 
     glm::mat4 getView() const;
-    glm::mat4 getProjection() const;
+    glm::mat4 getProjection(float aspect) const;
 
 };

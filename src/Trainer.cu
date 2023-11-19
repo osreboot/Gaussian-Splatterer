@@ -163,16 +163,23 @@ Trainer::~Trainer() {
     for (uint32_t* frameBuffer : truthFrameBuffersB) cudaFree(frameBuffer);
 }
 
-void Trainer::render(uint32_t* frameBuffer, const Camera& camera) {
+void Trainer::render(uint32_t* frameBuffer, int sizeX, int sizeY, const Camera& camera) {
     std::vector<float> background = {0.0f, 0.0f, 0.0f};
     cudaMemcpy(devBackground, background.data(), 3 * sizeof(float), cudaMemcpyHostToDevice);
 
     glm::mat4 matView = camera.getView();
-    glm::mat4 matProjView = camera.getProjection() * matView;
+    glm::mat4 matProjView = camera.getProjection((float)sizeX / (float)sizeY) * matView;
     cudaMemcpy(devMatView, glm::value_ptr(matView), 16 * sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(devMatProjView, glm::value_ptr(matProjView), 16 * sizeof(float), cudaMemcpyHostToDevice);
 
     cudaMemcpy(devCameraLocation, &camera.location[0], 3 * sizeof(float), cudaMemcpyHostToDevice);
+
+    const bool useBuiltinColorBuffer = sizeX == RENDER_RESOLUTION_X && sizeY == RENDER_RESOLUTION_Y;
+
+    float* devColorBuffer = nullptr;
+    if (useBuiltinColorBuffer) {
+        devColorBuffer = devRasterized;
+    } else cudaMalloc(&devColorBuffer, sizeX * sizeY * 3 * sizeof(float));
 
     char* geomBuffer;
     char* binningBuffer;
@@ -186,8 +193,8 @@ void Trainer::render(uint32_t* frameBuffer, const Camera& camera) {
             model->shDegree,
             model->shCoeffs,
             devBackground,
-            RENDER_RESOLUTION_X,
-            RENDER_RESOLUTION_Y,
+            sizeX,
+            sizeY,
             model->devLocations,
             model->devShs,
             nullptr,
@@ -199,18 +206,22 @@ void Trainer::render(uint32_t* frameBuffer, const Camera& camera) {
             devMatView,
             devMatProjView,
             devCameraLocation,
-            tan(glm::radians(camera.fovDegY) * 0.5f),
+            tan(glm::radians((float)sizeX * camera.fovDegY / (float)sizeY) * 0.5f),
             tan(glm::radians(camera.fovDegY) * 0.5f),
             false,
-            devRasterized,
+            devColorBuffer,
             nullptr,
             true);
 
-    imageFloatToInt<<<256, 256>>>(devRasterized, frameBuffer, 256 * 256, RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y);
+    imageFloatToInt<<<256, 256>>>(devColorBuffer, frameBuffer, 256 * 256, sizeX, sizeY);
 
     cudaFree(geomBuffer);
     cudaFree(binningBuffer);
     cudaFree(imgBuffer);
+
+    if (!useBuiltinColorBuffer) cudaFree(devColorBuffer);
+
+    cudaDeviceSynchronize();
 }
 
 void Trainer::captureTruths(const Project& project, RtxHost& rtx) {
@@ -227,12 +238,12 @@ void Trainer::captureTruths(const Project& project, RtxHost& rtx) {
         for (const Camera& camera : Camera::getCameras(project)) {
             uint32_t* frameBufferW;
             cudaMalloc(&frameBufferW, RENDER_RESOLUTION_X * RENDER_RESOLUTION_Y * sizeof(uint32_t));
-            rtx.render(frameBufferW, camera, {1.0f, 1.0f, 1.0f}, {});
+            rtx.render(frameBufferW, {RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y}, camera, {1.0f, 1.0f, 1.0f}, {});
             truthFrameBuffersW.push_back(frameBufferW);
 
             uint32_t* frameBufferB;
             cudaMalloc(&frameBufferB, RENDER_RESOLUTION_X * RENDER_RESOLUTION_Y * sizeof(uint32_t));
-            rtx.render(frameBufferB, camera, {0.0f, 0.0f, 0.0f}, {});
+            rtx.render(frameBufferB, {RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y}, camera, {0.0f, 0.0f, 0.0f}, {});
             truthFrameBuffersB.push_back(frameBufferB);
 
             truthCameras.push_back(camera);
@@ -240,8 +251,8 @@ void Trainer::captureTruths(const Project& project, RtxHost& rtx) {
     } else {
         std::vector<Camera> cameras = Camera::getCameras(project);
         for (int i = 0; i < cameras.size(); i++) {
-            rtx.render(truthFrameBuffersW.at(i), cameras.at(i), {1.0f, 1.0f, 1.0f}, {});
-            rtx.render(truthFrameBuffersB.at(i), cameras.at(i), {0.0f, 0.0f, 0.0f}, {});
+            rtx.render(truthFrameBuffersW.at(i), {RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y}, cameras.at(i), {1.0f, 1.0f, 1.0f}, {});
+            rtx.render(truthFrameBuffersB.at(i), {RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y}, cameras.at(i), {0.0f, 0.0f, 0.0f}, {});
             truthCameras.at(i) = cameras.at(i);
         }
     }
@@ -317,7 +328,7 @@ void Trainer::train(Project& project, bool densify) {
         cudaMemcpy(devBackground, background.data(), 3 * sizeof(float), cudaMemcpyHostToDevice);
 
         glm::mat4 matView = camera.getView();
-        glm::mat4 matProjView = camera.getProjection() * matView;
+        glm::mat4 matProjView = camera.getProjection((float)RENDER_RESOLUTION_X / (float)RENDER_RESOLUTION_Y) * matView;
         cudaMemcpy(devMatView, glm::value_ptr(matView), 16 * sizeof(float), cudaMemcpyHostToDevice);
         cudaMemcpy(devMatProjView, glm::value_ptr(matProjView), 16 * sizeof(float), cudaMemcpyHostToDevice);
 

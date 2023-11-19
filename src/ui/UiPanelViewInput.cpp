@@ -49,7 +49,8 @@ void UiPanelViewInput::refreshText() {
 void UiPanelViewInput::render() {
     canvas->SetCurrent(*context);
 
-    getFrame().rtx->render(renderer->frameBuffer, Camera::getPreviewCamera(getProject()), {0.0f, 0.0f, 0.0f},
+    getFrame().rtx->render(renderer->frameBuffer, {RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y},
+                           Camera::getPreviewCamera(getProject()), {0.0f, 0.0f, 0.0f},
                            getProject().previewIndex == -1 ? Camera::getCameras(getProject()) : std::vector<Camera>());
 
     renderer->render(canvas->GetSize().x, canvas->GetSize().y);

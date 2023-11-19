@@ -17,15 +17,13 @@ private:
 
     OWLGeomType geomType;
 
-    const owl::vec2i size;
-
     bool initialized;
 
 public:
-    explicit RtxHost(owl::vec2i size);
+    explicit RtxHost();
 
     void load(const Project& project);
 
-    void render(uint32_t* frameBuffer, const Camera& camera, owl::vec3f background, const std::vector<Camera>& cameras);
+    void render(uint32_t* frameBuffer, owl::vec2i size, const Camera& camera, owl::vec3f background, const std::vector<Camera>& cameras);
 
 };

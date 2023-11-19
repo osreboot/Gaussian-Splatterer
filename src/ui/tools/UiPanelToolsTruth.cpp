@@ -44,7 +44,7 @@ UiPanelToolsTruth::UiPanelToolsTruth(wxWindow* parent) : wxPanel(parent) {
     spinSphere1Distance->SetMinSize({64, -1});
     sizerSphere1_1->Add(spinSphere1Distance);
 
-    sizerSphere1_3->Add(new wxStaticText(this, wxID_ANY, "FOV"));
+    sizerSphere1_3->Add(new wxStaticText(this, wxID_ANY, "FOV (Y Deg.)"));
     spinSphere1Fov = new wxSpinCtrlDouble(this, S1_FOV);
     spinSphere1Fov->SetRange(10.0, 120.0);
     spinSphere1Fov->SetDigits(1);
@@ -92,7 +92,7 @@ UiPanelToolsTruth::UiPanelToolsTruth(wxWindow* parent) : wxPanel(parent) {
     spinSphere2Distance->SetMinSize({64, -1});
     sizerSphere2_1->Add(spinSphere2Distance);
 
-    sizerSphere2_3->Add(new wxStaticText(this, wxID_ANY, "FOV"));
+    sizerSphere2_3->Add(new wxStaticText(this, wxID_ANY, "FOV (Y Deg.)"));
     spinSphere2Fov = new wxSpinCtrlDouble(this, S2_FOV);
     spinSphere2Fov->SetRange(10.0, 120.0);
     spinSphere2Fov->SetDigits(1);
@@ -156,7 +156,7 @@ void UiPanelToolsTruth::onSpin(wxSpinEvent& event) {
         case CameraSphereIds::S1_COUNT: getProject().sphere1.count = event.GetValue(); break;
         case CameraSphereIds::S2_COUNT: getProject().sphere2.count = event.GetValue(); break;
     }
-    getFrame().panelTools->refreshCameraCount();
+    getFrame().panelTools->panelView->refreshCameraCount();
 }
 
 void UiPanelToolsTruth::onSpinDouble(wxSpinDoubleEvent& event) {

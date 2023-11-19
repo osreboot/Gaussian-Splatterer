@@ -12,7 +12,7 @@
 using namespace owl;
 using namespace std;
 
-RtxHost::RtxHost(vec2i size) : size(size) {
+RtxHost::RtxHost() {
     // Initialize OWL context so we can start loading resources
     context = owlContextCreate(nullptr, 1);
     OWLModule module = owlModuleCreate(context, RtxDevice_ptx);
@@ -160,7 +160,7 @@ void RtxHost::load(const Project& project) {
     initialized = true;
 }
 
-void RtxHost::render(uint32_t* frameBuffer, const Camera& camera, vec3f background, const vector<Camera>& cameras) {
+void RtxHost::render(uint32_t* frameBuffer, owl::vec2i size, const Camera& camera, vec3f background, const vector<Camera>& cameras) {
     owlRayGenSet1i(rayGen, "splatCamerasCount", (int)cameras.size());
 
     if (!cameras.empty()) {
@@ -178,7 +178,7 @@ void RtxHost::render(uint32_t* frameBuffer, const Camera& camera, vec3f backgrou
         owlRayGenSet2i(rayGen, "size", size.x, size.y);
         owlRayGenSet3f(rayGen, "background", (const owl3f&)background);
         owlRayGenSet3f(rayGen, "cameraLocation", (const owl3f&)camera.location);
-        glm::mat4 cameraMatrix = glm::inverse(camera.getProjection() * camera.getView());
+        glm::mat4 cameraMatrix = glm::inverse(camera.getProjection((float)size.x / (float)size.y) * camera.getView());
         owlRayGenSetBuffer(rayGen, "cameraMatrix", owlDeviceBufferCreate(context, OWL_FLOAT, 16, &cameraMatrix[0]));
 
         // Run ray tracer

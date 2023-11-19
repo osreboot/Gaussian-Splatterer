@@ -26,9 +26,12 @@ public:
     int previewIndex = -1;
     float previewTimer = 0.0f;
 
+    int renderResX = 2048;
+    int renderResY = 2048;
+
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Project,
                                                 pathModel, pathTexture,
                                                 sphere1, sphere2, iterations, intervalCapture, intervalDensify,
-                                                previewIndex, previewTimer);
+                                                previewIndex, previewTimer, renderResX, renderResY);
 
 };

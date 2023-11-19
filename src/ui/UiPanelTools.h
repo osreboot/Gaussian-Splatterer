@@ -5,6 +5,7 @@
 
 #include "ui/tools/UiPanelToolsTrain.h"
 #include "ui/tools/UiPanelToolsTruth.h"
+#include "ui/tools/UiPanelToolsView.h"
 
 class UiPanelTools : public wxPanel {
 
@@ -14,22 +15,14 @@ private:
     wxBoxSizer* sizer;
 
     wxStaticBoxSizer* sizerStaticInput;
-    wxStaticBoxSizer* sizerStaticOutput;
-
-    wxCheckBox* checkBoxPreviewCamera;
-    wxSpinCtrl* spinCtrlPreviewCamera;
 
 public:
     UiPanelToolsTruth* panelTruth;
     UiPanelToolsTrain* panelTrain;
+    UiPanelToolsView* panelView;
 
     UiPanelTools(wxWindow* parent);
 
     void refreshProject();
-
-    void refreshCameraCount();
-
-    void onCheckBoxPreviewCamera(wxCommandEvent& event);
-    void onSpinCtrlPreviewCamera(wxSpinEvent& event);
 
 };

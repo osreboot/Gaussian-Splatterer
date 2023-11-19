@@ -23,6 +23,8 @@ target_sources(${PROJECT_NAME} PRIVATE
         ui/tools/UiPanelToolsTrain.h
         ui/tools/UiPanelToolsTruth.cpp
         ui/tools/UiPanelToolsTruth.h
+        ui/tools/UiPanelToolsView.cpp
+        ui/tools/UiPanelToolsView.h
         ui/UiFrame.cpp
         ui/UiFrame.h
         ui/UiPanelViewInput.cpp

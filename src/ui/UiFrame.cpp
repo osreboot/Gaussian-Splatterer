@@ -28,7 +28,7 @@ UiFrame::UiFrame() :
     project->pathModel = R"(C:\Users\Calvin\Desktop\Archives\Development\Resources\Gecko 3d model\Splats\Gecko.obj)";
     project->pathTexture = R"(C:\Users\Calvin\Desktop\Archives\Development\Resources\Gecko 3d model\Splats\Gecko.BMP)";
 
-    rtx = new RtxHost({RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y});
+    rtx = new RtxHost();
     rtx->load(*project);
 
     trainer = new Trainer();
