@@ -178,6 +178,7 @@ void UiPanelToolsTruth::onSpinDouble(wxSpinDoubleEvent& event) {
         case CameraSphereIds::S2_FOV: getProject().sphere2.fovDeg = (float)event.GetValue(); break;
         case CameraSphereIds::S2_ROTX: getProject().sphere2.rotX = (float)event.GetValue(); break;
         case CameraSphereIds::S2_ROTY: getProject().sphere2.rotY = (float)event.GetValue(); break;
+        default: break;
     }
 }
 

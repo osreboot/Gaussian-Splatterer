@@ -77,7 +77,7 @@ __global__ void accumulateVariance(float* varLocations, const float* gradLocatio
 
 __global__ void applyGradients(float* locations, float* shs, float* scales, float* opacities, float* rotations,
                                const float* gradLocations, const float* gradShs, const float* gradScales, const float* gradOpacities, const float* gradRotations,
-                               const float lr, const float lrSh, const float lrOpacity, const float lrRotation,
+                               const float lr, const float lrSh, const float lrScale, const float lrOpacity, const float lrRotation,
                                const int shCoeffs, const int step, const int count) {
     for(int i = blockIdx.x * blockDim.x + threadIdx.x; i < count; i += step){
         for(int f = 0; f < 3; f++) {
@@ -87,7 +87,7 @@ __global__ void applyGradients(float* locations, float* shs, float* scales, floa
             shs[i * 3 * shCoeffs + f] += gradShs[i * 3 * shCoeffs + f] * lrSh;
         }
         for(int f = 0; f < 3; f++) {
-            scales[i * 3 + f] += gradScales[i * 3 + f] * lr;
+            scales[i * 3 + f] += gradScales[i * 3 + f] * lrScale;
             scales[i * 3 + f] = min(0.3f, max(0.0f, scales[i * 3 + f]));
         }
         opacities[i] = min(1.0f, max(0.0f, opacities[i] + gradOpacities[i] * lrOpacity));
@@ -427,14 +427,9 @@ void Trainer::train(Project& project, bool densify) {
         cudaFree(imgBuffer);
     }
 
-    static const float learningRate = 0.00005f;
-    static const float learningRateShs = learningRate * 2.0f;
-    static const float learningRateOpacity = learningRate * 2.0f;
-    static const float learningRateRotation = learningRate / 2.0f;
-
     applyGradients<<<256, 256>>>(model->devLocations, model->devShs, model->devScales, model->devOpacities, model->devRotations,
                                  devAvgGradLocations, devAvgGradShs, devAvgGradScales, devAvgGradOpacities, devAvgGradRotations,
-                                 learningRate, learningRateShs, learningRateOpacity, learningRateRotation,
+                                 project.lrLocation, project.lrSh, project.lrScale, project.lrOpacity, project.lrRotation,
                                  model->shCoeffs, 256 * 256, model->count);
 
 
@@ -498,9 +493,9 @@ void Trainer::train(Project& project, bool densify) {
         for (int i : toClone) {
             if (modelHost.count < modelHost.capacity) {
                 glm::vec3 loc(modelHost.locations[i * 3], modelHost.locations[i * 3 + 1], modelHost.locations[i * 3 + 2]);
-                loc += glm::vec3(gradLocations[i * 3] * learningRate,
-                                 gradLocations[i * 3 + 1] * learningRate,
-                                 gradLocations[i * 3 + 2] * learningRate);
+                loc += glm::vec3(gradLocations[i * 3] * project.lrLocation,
+                                 gradLocations[i * 3 + 1] * project.lrLocation,
+                                 gradLocations[i * 3 + 2] * project.lrLocation);
 
                 int i2 = modelHost.count;
                 modelHost.count++;

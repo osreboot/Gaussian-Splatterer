@@ -1,6 +1,7 @@
 #pragma once
 
 #include <wx/wx.h>
+#include <wx/spinctrl.h>
 
 #include "ui/UiFrame.h"
 #include "Project.h"
@@ -16,10 +17,24 @@ private:
     wxButton* buttonAutoStart;
     wxButton* buttonAutoStop;
 
+    wxSpinCtrlDouble* spinLrLocation;
+    wxSpinCtrlDouble* spinLrSh;
+    wxSpinCtrlDouble* spinLrScale;
+    wxSpinCtrlDouble* spinLrOpacity;
+    wxSpinCtrlDouble* spinLrRotation;
+
     wxStaticText* textIntervalCapture;
     wxStaticText* textIntervalDensify;
     wxSpinCtrl* spinIntervalCapture;
     wxSpinCtrl* spinIntervalDensify;
+
+    enum ParameterIds {
+        LR_LOCATION,
+        LR_SH,
+        LR_SCALE,
+        LR_OPACITY,
+        LR_ROTATION
+    };
 
 public:
     UiPanelToolsTrain(wxWindow* parent);
@@ -29,6 +44,8 @@ public:
 
     void onButtonAutoStart(wxCommandEvent& event);
     void onButtonAutoStop(wxCommandEvent& event);
+
+    void onSpinParameter(wxSpinDoubleEvent& event);
 
     void onSpinIntervalCapture(wxSpinEvent& event);
     void onSpinIntervalDensify(wxSpinEvent& event);
