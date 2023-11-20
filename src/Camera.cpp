@@ -36,16 +36,16 @@ std::vector<Camera> Camera::getCameras(const Project& project) {
 
     static const glm::vec3 target = {0.0f, 0.0f, 0.0f};
 
-    glm::mat4 rot1 = (glm::mat4)glm::angleAxis(glm::radians(project.sphere1.rotY), glm::vec3(0.0f, 1.0f, 0.0f)) *
-                     (glm::mat4)glm::angleAxis(glm::radians(project.sphere1.rotX), glm::vec3(1.0f, 0.0f, 0.0f));
+    glm::mat4 rot1 = (glm::mat4)glm::angleAxis(glm::radians(project.sphere1.rotX), glm::vec3(0.0f, 1.0f, 0.0f)) *
+            (glm::mat4)glm::angleAxis(glm::radians(project.sphere1.rotY), glm::vec3(1.0f, 0.0f, 0.0f));
 
     for(glm::vec3 loc3 : getFibonacciSphere(project.sphere1.count, project.sphere1.distance)) {
         glm::vec4 loc4 = rot1 * glm::vec4(loc3.x, loc3.y, loc3.z, 1.0f);
         out.emplace_back(glm::vec3(loc4.x / loc4.w, loc4.y / loc4.w, loc4.z / loc4.w), target, project.sphere1.fovDeg);
     }
 
-    glm::mat4 rot2 = (glm::mat4)glm::angleAxis(glm::radians(project.sphere2.rotY), glm::vec3(0.0f, 1.0f, 0.0f)) *
-                     (glm::mat4)glm::angleAxis(glm::radians(project.sphere2.rotX), glm::vec3(1.0f, 0.0f, 0.0f));
+    glm::mat4 rot2 = (glm::mat4)glm::angleAxis(glm::radians(project.sphere2.rotX), glm::vec3(0.0f, 1.0f, 0.0f)) *
+            (glm::mat4)glm::angleAxis(glm::radians(project.sphere2.rotY), glm::vec3(1.0f, 0.0f, 0.0f));
 
     for(glm::vec3 loc3 : getFibonacciSphere(project.sphere2.count, project.sphere2.distance)) {
         glm::vec4 loc4 = rot2 * glm::vec4(loc3.x, loc3.y, loc3.z, 1.0f);
@@ -58,10 +58,15 @@ std::vector<Camera> Camera::getCameras(const Project& project) {
 Camera Camera::getPreviewCamera(const Project& project) {
     static const glm::vec3 target = {0.0f, 0.0f, 0.0f};
 
-    if(project.previewIndex == -1) {
-        return {glm::vec3(cos(project.previewTimer / 2.0f), 0.4f, sin(project.previewTimer / 2.0f)) * glm::vec3(10.0f),
-                target, PREVIEW_FOV_Y};
-    } else return getCameras(project).at(project.previewIndex);
+    if(project.previewTruth) {
+        return getCameras(project).at(project.previewTruthIndex);
+    } else {
+        float degRotOrbit = project.previewFreeOrbit ? project.previewTimer * project.previewFreeOrbitSpeed : 0.0f;
+        glm::mat4 rot = (glm::mat4)glm::angleAxis(glm::radians(project.previewFreeRotY) + degRotOrbit, glm::vec3(0.0f, 1.0f, 0.0f)) *
+                (glm::mat4)glm::angleAxis(glm::radians(project.previewFreeRotX), glm::vec3(1.0f, 0.0f, 0.0f));
+        glm::vec4 loc = rot * glm::vec4(0.0f, 0.0f, -project.previewFreeDistance, 1.0f);
+        return {glm::vec3(loc.x / loc.w, loc.y / loc.w, loc.z / loc.w), target, project.previewFreeFovDeg};
+    }
 }
 
 Camera::Camera(const glm::vec3& location, const glm::vec3& target, float fovDegY) :

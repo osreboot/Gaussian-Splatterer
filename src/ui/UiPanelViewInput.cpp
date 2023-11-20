@@ -51,7 +51,7 @@ void UiPanelViewInput::render() {
 
     getFrame().rtx->render(renderer->frameBuffer, {RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y},
                            Camera::getPreviewCamera(getProject()), {0.0f, 0.0f, 0.0f}, getProject().previewRtSamples,
-                           getProject().previewIndex == -1 ? Camera::getCameras(getProject()) : std::vector<Camera>());
+                           getProject().previewTruth ? std::vector<Camera>() : Camera::getCameras(getProject()));
 
     renderer->render(canvas->GetSize().x, canvas->GetSize().y);
     canvas->SwapBuffers();

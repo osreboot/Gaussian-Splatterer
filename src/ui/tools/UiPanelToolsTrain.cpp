@@ -165,10 +165,10 @@ void UiPanelToolsTrain::onButtonManual(wxCommandEvent& event) {
 
     if (count > 1) {
         wxProgressDialog dialog("Training Gaussian Splats", "Training for " + std::to_string(count) + " iterations...",
-                                count, getFrame().panelOutput, wxPD_AUTO_HIDE);
+                                count, getFrame().panelOutput, wxPD_AUTO_HIDE | wxPD_CAN_ABORT);
         for (int i = 0; i < count; i++) {
             getFrame().trainer->train(getProject(), densify);
-            dialog.Update(i + 1);
+            if(!dialog.Update(i + 1)) break;
         }
     } else getFrame().trainer->train(getProject(), densify);
 

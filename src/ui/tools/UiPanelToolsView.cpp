@@ -26,23 +26,82 @@ UiPanelToolsView::UiPanelToolsView(wxWindow* parent) : wxPanel(parent) {
     wxBoxSizer* sizerControls = new wxBoxSizer(wxVERTICAL);
     sizer->Add(sizerControls, wxSizerFlags().Border());
 
-    checkPreviewCamera = new wxCheckBox(this, wxID_ANY, "View Truth Camera");
-    checkPreviewCamera->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &UiPanelToolsView::onCheckPreviewCamera, this);
-    sizerControls->Add(checkPreviewCamera);
-
-    sizerControls->Add(new wxStaticText(this, wxID_ANY, "View Camera"), wxSizerFlags().Border(wxUP));
-    spinPreviewCamera = new wxSpinCtrl(this);
-    spinPreviewCamera->SetMinSize({64, -1});
-    spinPreviewCamera->Bind(wxEVT_COMMAND_SPINCTRL_UPDATED, &UiPanelToolsView::onSpinPreviewCamera, this);
-    spinPreviewCamera->Disable();
-    sizerControls->Add(spinPreviewCamera, wxSizerFlags().Border(wxDOWN));
-
     sizerControls->Add(new wxStaticText(this, wxID_ANY, "View RT Samples"), wxSizerFlags().Border(wxUP));
-    spinPreviewRtSamples = new wxSpinCtrl(this);
-    spinPreviewRtSamples->SetRange(1, 5000);
-    spinPreviewRtSamples->SetMinSize({64, -1});
-    spinPreviewRtSamples->Bind(wxEVT_COMMAND_SPINCTRL_UPDATED, &UiPanelToolsView::onSpinPreviewRtSamples, this);
-    sizerControls->Add(spinPreviewRtSamples);
+    spinCamRtSamples = new wxSpinCtrl(this);
+    spinCamRtSamples->SetRange(1, 5000);
+    spinCamRtSamples->SetMinSize({64, -1});
+    spinCamRtSamples->Bind(wxEVT_COMMAND_SPINCTRL_UPDATED, &UiPanelToolsView::onSpinCamRtSamples, this);
+    sizerControls->Add(spinCamRtSamples);
+
+
+
+    wxStaticBoxSizer* sizerCamRef = new wxStaticBoxSizer(wxVERTICAL, this, "View Truth");
+    sizer->Add(sizerCamRef, wxSizerFlags().Border());
+
+    checkCamRef = new wxCheckBox(this, wxID_ANY, "Enabled");
+    checkCamRef->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &UiPanelToolsView::onCheckCamRef, this);
+    sizerCamRef->Add(checkCamRef, wxSizerFlags().Border(wxUP | wxLEFT | wxRIGHT));
+
+    sizerCamRef->Add(new wxStaticText(this, wxID_ANY, "Truth Camera"), wxSizerFlags().Border(wxUP | wxLEFT | wxRIGHT));
+    spinCamRefIdx = new wxSpinCtrl(this);
+    spinCamRefIdx->SetMinSize({64, -1});
+    spinCamRefIdx->Bind(wxEVT_COMMAND_SPINCTRL_UPDATED, &UiPanelToolsView::onSpinCamRefIdx, this);
+    spinCamRefIdx->Disable();
+    sizerCamRef->Add(spinCamRefIdx, wxSizerFlags().Border(wxDOWN | wxLEFT | wxRIGHT));
+
+
+
+    wxStaticBoxSizer* sizerCamFree = new wxStaticBoxSizer(wxHORIZONTAL, this, "View Free");
+    sizer->Add(sizerCamFree, wxSizerFlags().Border());
+
+    wxBoxSizer* sizerCamFree1 = new wxBoxSizer(wxVERTICAL);
+    sizerCamFree->Add(sizerCamFree1, wxSizerFlags().Border());
+    wxBoxSizer* sizerCamFree2 = new wxBoxSizer(wxVERTICAL);
+    sizerCamFree->Add(sizerCamFree2, wxSizerFlags().Border());
+    wxBoxSizer* sizerCamFree3 = new wxBoxSizer(wxVERTICAL);
+    sizerCamFree->Add(sizerCamFree3, wxSizerFlags().Border());
+
+    sizerCamFree1->Add(new wxStaticText(this, wxID_ANY, "Distance"));
+    spinCamFreeDistance = new wxSpinCtrlDouble(this, F_DISTANCE);
+    spinCamFreeDistance->SetRange(0.1, 40.0);
+    spinCamFreeDistance->SetDigits(2);
+    spinCamFreeDistance->SetIncrement(0.1);
+    spinCamFreeDistance->SetMinSize({64, -1});
+    sizerCamFree1->Add(spinCamFreeDistance);
+
+    sizerCamFree1->Add(new wxStaticText(this, wxID_ANY, "FOV (Y Deg.)"), wxSizerFlags().Border(wxUP));
+    spinCamFreeFov = new wxSpinCtrlDouble(this, F_FOV);
+    spinCamFreeFov->SetRange(10.0, 120.0);
+    spinCamFreeFov->SetDigits(1);
+    spinCamFreeFov->SetIncrement(0.1);
+    spinCamFreeFov->SetMinSize({64, -1});
+    sizerCamFree1->Add(spinCamFreeFov);
+
+    sizerCamFree2->Add(new wxStaticText(this, wxID_ANY, "Rotation (X,Y)"));
+    spinCamFreeRotX = new wxSpinCtrlDouble(this, F_ROTX);
+    spinCamFreeRotX->SetRange(0.0, 360.0);
+    spinCamFreeRotX->SetDigits(1);
+    spinCamFreeRotX->SetIncrement(5);
+    spinCamFreeRotX->SetMinSize({64, -1});
+    sizerCamFree2->Add(spinCamFreeRotX);
+    spinCamFreeRotY = new wxSpinCtrlDouble(this, F_ROTY);
+    spinCamFreeRotY->SetRange(0.0, 360.0);
+    spinCamFreeRotY->SetDigits(1);
+    spinCamFreeRotY->SetIncrement(5);
+    spinCamFreeRotY->SetMinSize({64, -1});
+    sizerCamFree2->Add(spinCamFreeRotY);
+
+    checkCamFreeOrbit = new wxCheckBox(this, wxID_ANY, "Orbit");
+    checkCamFreeOrbit->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &UiPanelToolsView::onCheckCamFreeOrbit, this);
+    sizerCamFree3->Add(checkCamFreeOrbit);
+
+    sizerCamFree3->Add(new wxStaticText(this, wxID_ANY, "Orbit Speed"), wxSizerFlags().Border(wxUP));
+    spinCamFreeOrbitSpeed = new wxSpinCtrlDouble(this, F_SPEED);
+    spinCamFreeOrbitSpeed->SetRange(0.0, 10.0);
+    spinCamFreeOrbitSpeed->SetDigits(4);
+    spinCamFreeOrbitSpeed->SetIncrement(0.1);
+    spinCamFreeOrbitSpeed->SetMinSize({64, -1});
+    sizerCamFree3->Add(spinCamFreeOrbitSpeed);
 
 
 
@@ -79,40 +138,76 @@ UiPanelToolsView::UiPanelToolsView(wxWindow* parent) : wxPanel(parent) {
 
 
 
+    Bind(wxEVT_COMMAND_SPINCTRLDOUBLE_UPDATED, &UiPanelToolsView::onSpinDouble, this);
+
+
+
     SetSizerAndFit(sizer);
 }
 
 void UiPanelToolsView::refreshProject() {
-    checkPreviewCamera->SetValue(getProject().previewIndex != -1);
-    spinPreviewCamera->Enable(getProject().previewIndex != -1);
-    spinPreviewCamera->SetValue(getProject().previewIndex + 1);
-    spinPreviewRtSamples->SetValue(getProject().previewRtSamples);
-    refreshCameraCount();
+    spinCamRtSamples->SetValue(getProject().previewRtSamples);
+
+    checkCamRef->SetValue(getProject().previewTruth);
+    spinCamRefIdx->SetValue(getProject().previewTruthIndex);
+
+    checkCamFreeOrbit->SetValue(getProject().previewFreeOrbit);
+    spinCamFreeOrbitSpeed->SetValue(getProject().previewFreeOrbitSpeed);
+    spinCamFreeDistance->SetValue(getProject().previewFreeDistance);
+    spinCamFreeFov->SetValue(getProject().previewFreeFovDeg);
+    spinCamFreeRotX->SetValue(getProject().previewFreeRotX);
+    spinCamFreeRotY->SetValue(getProject().previewFreeRotY);
+
     spinRenderResX->SetValue(getProject().renderResX);
     spinRenderResY->SetValue(getProject().renderResY);
+
+    refreshCameraCount();
+    refreshViewPanels();
 }
 
 void UiPanelToolsView::refreshCameraCount() {
-    spinPreviewCamera->SetRange(1, Camera::getCamerasCount(getProject()));
-    getProject().previewIndex = std::max(-1, std::min(Camera::getCamerasCount(getProject()) - 1, getProject().previewIndex));
+    spinCamRefIdx->SetRange(1, Camera::getCamerasCount(getProject()));
+    getProject().previewTruthIndex = std::max(0, std::min(Camera::getCamerasCount(getProject()) - 1, getProject().previewTruthIndex));
 }
 
-void UiPanelToolsView::onCheckPreviewCamera(wxCommandEvent& event) {
-    if(event.IsChecked()) {
-        getProject().previewIndex = spinPreviewCamera->GetValue() - 1;
-        spinPreviewCamera->Enable();
-    } else {
-        getProject().previewIndex = -1;
-        spinPreviewCamera->Disable();
-    }
+void UiPanelToolsView::refreshViewPanels() {
+    spinCamRefIdx->Enable(getProject().previewTruth);
+    checkCamFreeOrbit->Enable(!getProject().previewTruth);
+    spinCamFreeOrbitSpeed->Enable(!getProject().previewTruth && getProject().previewFreeOrbit);
+    spinCamFreeDistance->Enable(!getProject().previewTruth);
+    spinCamFreeFov->Enable(!getProject().previewTruth);
+    spinCamFreeRotX->Enable(!getProject().previewTruth);
+    spinCamFreeRotY->Enable(!getProject().previewTruth);
 }
 
-void UiPanelToolsView::onSpinPreviewCamera(wxSpinEvent& event) {
-    getProject().previewIndex = event.GetValue() - 1;
+void UiPanelToolsView::onCheckCamRef(wxCommandEvent& event) {
+    getProject().previewTruth = event.IsChecked();
+    refreshViewPanels();
 }
 
-void UiPanelToolsView::onSpinPreviewRtSamples(wxSpinEvent& event) {
+void UiPanelToolsView::onSpinCamRefIdx(wxSpinEvent& event) {
+    getProject().previewTruthIndex = event.GetValue() - 1;
+}
+
+void UiPanelToolsView::onSpinCamRtSamples(wxSpinEvent& event) {
     getProject().previewRtSamples = event.GetValue();
+}
+
+void UiPanelToolsView::onCheckCamFreeOrbit(wxCommandEvent& event) {
+    getProject().previewFreeOrbit = event.IsChecked();
+    getProject().previewTimer = 0.0f;
+    refreshViewPanels();
+}
+
+void UiPanelToolsView::onSpinDouble(wxSpinDoubleEvent& event) {
+    switch(event.GetId()) {
+        case SpinDoubleIds::F_SPEED: getProject().previewFreeOrbitSpeed = (float)event.GetValue(); break;
+        case SpinDoubleIds::F_DISTANCE: getProject().previewFreeDistance = (float)event.GetValue(); break;
+        case SpinDoubleIds::F_FOV: getProject().previewFreeFovDeg = (float)event.GetValue(); break;
+        case SpinDoubleIds::F_ROTX: getProject().previewFreeRotX = (float)event.GetValue(); break;
+        case SpinDoubleIds::F_ROTY: getProject().previewFreeRotY = (float)event.GetValue(); break;
+        default: break;
+    }
 }
 
 void UiPanelToolsView::onSpinRenderRes(wxSpinEvent& event) {

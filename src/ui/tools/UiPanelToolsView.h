@@ -14,9 +14,17 @@ private:
 
     wxStaticBoxSizer* sizer;
 
-    wxCheckBox* checkPreviewCamera;
-    wxSpinCtrl* spinPreviewCamera;
-    wxSpinCtrl* spinPreviewRtSamples;
+    wxSpinCtrl* spinCamRtSamples;
+
+    wxCheckBox* checkCamRef;
+    wxSpinCtrl* spinCamRefIdx;
+
+    wxCheckBox* checkCamFreeOrbit;
+    wxSpinCtrlDouble* spinCamFreeOrbitSpeed;
+    wxSpinCtrlDouble* spinCamFreeDistance;
+    wxSpinCtrlDouble* spinCamFreeFov;
+    wxSpinCtrlDouble* spinCamFreeRotX;
+    wxSpinCtrlDouble* spinCamFreeRotY;
 
     wxSpinCtrl* spinRenderResX;
     wxSpinCtrl* spinRenderResY;
@@ -24,15 +32,28 @@ private:
     wxButton* buttonRenderRtx;
     wxButton* buttonRenderSplats;
 
+    enum SpinDoubleIds {
+        F_SPEED,
+        F_DISTANCE,
+        F_FOV,
+        F_ROTX,
+        F_ROTY
+    };
+
 public:
     UiPanelToolsView(wxWindow* parent);
 
     void refreshProject();
     void refreshCameraCount();
+    void refreshViewPanels();
 
-    void onCheckPreviewCamera(wxCommandEvent& event);
-    void onSpinPreviewCamera(wxSpinEvent& event);
-    void onSpinPreviewRtSamples(wxSpinEvent& event);
+    void onCheckCamRef(wxCommandEvent& event);
+    void onSpinCamRefIdx(wxSpinEvent& event);
+    void onSpinCamRtSamples(wxSpinEvent& event);
+
+    void onCheckCamFreeOrbit(wxCommandEvent& event);
+
+    void onSpinDouble(wxSpinDoubleEvent& event);
 
     void onSpinRenderRes(wxSpinEvent& event);
 

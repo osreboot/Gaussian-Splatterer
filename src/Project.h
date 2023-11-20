@@ -38,9 +38,18 @@ public:
     int intervalCapture = 50;
     int intervalDensify = 200;
 
-    int previewIndex = -1;
     float previewTimer = 0.0f;
     int previewRtSamples = 50;
+
+    bool previewTruth = false;
+    int previewTruthIndex = 0;
+
+    bool previewFreeOrbit = true;
+    float previewFreeOrbitSpeed = 0.5f;
+    float previewFreeDistance = 10.0f;
+    float previewFreeFovDeg = 60.0f;
+    float previewFreeRotX = 25.0f;
+    float previewFreeRotY = 0.0f;
 
     int renderResX = 2048;
     int renderResY = 2048;
@@ -50,6 +59,8 @@ public:
                                                 sphere1, sphere2, rtSamples,
                                                 lrLocation, lrSh, lrScale, lrOpacity, lrRotation,
                                                 iterations, intervalCapture, intervalDensify,
-                                                previewIndex, previewTimer, previewRtSamples, renderResX, renderResY);
+                                                previewTimer, previewRtSamples, previewTruth, previewTruthIndex,
+                                                previewFreeOrbit, previewFreeOrbitSpeed, previewFreeDistance, previewFreeFovDeg, previewFreeRotX, previewFreeRotY,
+                                                renderResX, renderResY);
 
 };

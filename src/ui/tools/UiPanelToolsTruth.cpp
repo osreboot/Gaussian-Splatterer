@@ -20,7 +20,7 @@ UiPanelToolsTruth::UiPanelToolsTruth(wxWindow* parent) : wxPanel(parent) {
 
 
 
-    sizerSphere1 = new wxStaticBoxSizer(wxHORIZONTAL, this, "Camera Sphere 1");
+    sizerSphere1 = new wxStaticBoxSizer(wxHORIZONTAL, this, "Truth Camera Sphere 1");
     sizer->Add(sizerSphere1, wxSizerFlags().Border());
 
     wxBoxSizer* sizerSphere1_1 = new wxBoxSizer(wxVERTICAL);
@@ -68,7 +68,7 @@ UiPanelToolsTruth::UiPanelToolsTruth(wxWindow* parent) : wxPanel(parent) {
 
 
 
-    sizerSphere2 = new wxStaticBoxSizer(wxHORIZONTAL, this, "Camera Sphere 2");
+    sizerSphere2 = new wxStaticBoxSizer(wxHORIZONTAL, this, "Truth Camera Sphere 2");
     sizer->Add(sizerSphere2, wxSizerFlags().Border());
 
     wxBoxSizer* sizerSphere2_1 = new wxBoxSizer(wxVERTICAL);
@@ -119,14 +119,14 @@ UiPanelToolsTruth::UiPanelToolsTruth(wxWindow* parent) : wxPanel(parent) {
     sizerControls = new wxBoxSizer(wxVERTICAL);
     sizer->Add(sizerControls);
 
-    sizerControls->Add(new wxStaticText(this, wxID_ANY, "RT Samples"), wxSizerFlags().Border(wxUP | wxLEFT | wxRIGHT));
+    sizerControls->Add(new wxStaticText(this, wxID_ANY, "Truth RT Samples"), wxSizerFlags().Border(wxUP | wxLEFT | wxRIGHT));
     spinRtSamples = new wxSpinCtrl(this);
     spinRtSamples->SetRange(1, 200000);
     spinRtSamples->SetMinSize({64, -1});
     spinRtSamples->Bind(wxEVT_COMMAND_SPINCTRL_UPDATED, &UiPanelToolsTruth::onSpinRtSamples, this);
     sizerControls->Add(spinRtSamples, wxSizerFlags().Border(wxDOWN | wxLEFT | wxRIGHT));
 
-    buttonCapture = new wxButton(this, wxID_ANY, "Capture");
+    buttonCapture = new wxButton(this, wxID_ANY, "Capture Truth");
     buttonCapture->SetMinSize({-1, 40});
     buttonCapture->Bind(wxEVT_COMMAND_BUTTON_CLICKED, &UiPanelToolsTruth::onButtonCapture, this);
     sizerControls->Add(buttonCapture, wxSizerFlags().Expand().Border(wxUP | wxLEFT | wxRIGHT));
