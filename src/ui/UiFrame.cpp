@@ -5,10 +5,10 @@
 
 #include "UiPanelViewInput.h"
 #include "UiPanelViewOutput.h"
+#include "UiPanelParams.h"
 #include "UiPanelTools.h"
 #include "dialog/UiDialogAbout.h"
 
-#include "Config.h"
 #include "Project.h"
 #include "ModelSplatsDevice.h"
 #include "ModelSplatsHost.h"
@@ -23,15 +23,13 @@ UiFrame::UiFrame() :
     sizer = new wxBoxSizer(wxVERTICAL);
     panel->SetSizerAndFit(sizer);
 
-    project = new Project();
-    project->sphere2.fovDeg = 30.0f;
-    project->pathModel = R"(C:\Users\Calvin\Desktop\Archives\Development\Resources\Gecko 3d model\Splats\Gecko.obj)";
-    project->pathTexture = R"(C:\Users\Calvin\Desktop\Archives\Development\Resources\Gecko 3d model\Splats\Gecko.BMP)";
+    initProject();
 
     rtx = new RtxHost();
     rtx->load(*project);
 
     trainer = new Trainer();
+    initFieldGrid();
 
     timeLastUpdate = chrono::high_resolution_clock::now();
 
@@ -39,15 +37,20 @@ UiFrame::UiFrame() :
     SetMenuBar(menuBar);
 
     menuFile = new wxMenu();
-    menuFileInit = new wxMenu();
+    menuFileNew = new wxMenu();
     menuFileLoad = new wxMenu();
     menuFileSave = new wxMenu();
 
     menuBar->Append(menuFile, "File");
-    menuFile->AppendSubMenu(menuFileInit, "New");
+    menuFile->AppendSubMenu(menuFileNew, "New");
     menuFile->AppendSeparator();
     menuFile->AppendSubMenu(menuFileSave, "Save");
     menuFile->AppendSubMenu(menuFileLoad, "Load");
+    menuFileNew->Append(FILE_NEW_PROJECT, "New Project");
+    menuFileNew->AppendSeparator();
+    menuFileNew->Append(FILE_NEW_FIELD_GRID, "New Field From Grid");
+    menuFileNew->Append(FILE_NEW_FIELD_MONO, "New Field From Monolithic Splat");
+    menuFileNew->Append(FILE_NEW_FIELD_MODEL, "New Field From Model Triangles");
     menuFileSave->Append(FILE_SAVE_PROJECT, "Save Project");
     menuFileSave->AppendSeparator();
     menuFileSave->Append(FILE_SAVE_SPLATS, "Save Splats");
@@ -72,6 +75,10 @@ UiFrame::UiFrame() :
     panelOutput = new UiPanelViewOutput(panel, panelInput->context);
     sizerViews->Add(panelOutput, wxSizerFlags(1).Expand().Border());
 
+    panelParams = new UiPanelParams(panel);
+    panelParams->SetMinSize({128, -1});
+    sizerViews->Add(panelParams, wxSizerFlags().Border());
+
     panelTools = new UiPanelTools(panel);
     sizer->Add(panelTools, wxSizerFlags().Border());
 
@@ -85,6 +92,133 @@ UiFrame::~UiFrame() {
 
     delete rtx;
     delete trainer;
+}
+
+void UiFrame::initProject() {
+    delete project;
+    project = new Project();
+    project->sphere2.fovDeg = 30.0f;
+    project->pathModel = R"(C:\Users\Calvin\Desktop\Archives\Development\Resources\Gecko 3d model\Splats\Gecko.obj)";
+    project->pathTexture = R"(C:\Users\Calvin\Desktop\Archives\Development\Resources\Gecko 3d model\Splats\Gecko.BMP)";
+}
+
+void UiFrame::initFieldGrid() {
+    ModelSplatsHost modelHost(1000000, 1, 4);
+
+    static const float dim = 4.0f;
+    static const float step = 0.5f;
+
+    std::vector<float> shs;
+    for(int i = 0; i < 3 * modelHost.shCoeffs; i++) shs.push_back(0.0f);
+
+    for(float x = -dim; x <= dim; x += step){
+        for(float y = -dim; y <= dim; y += step){
+            for(float z = -dim; z <= dim; z += step){
+                modelHost.pushBack({x, y, z}, shs, {step * 0.1f, step * 0.1f, step * 0.1f},
+                                   1.0f, glm::angleAxis(0.0f, glm::vec3(0.0f, 1.0f, 0.0f)));
+            }
+        }
+    }
+
+    delete trainer->model;
+    trainer->model = new ModelSplatsDevice(modelHost);
+    project->iterations = 0;
+}
+
+void UiFrame::initFieldMono() {
+    ModelSplatsHost modelHost(1000000, 1, 4);
+
+    std::vector<float> shs;
+    for(int i = 0; i < 3 * modelHost.shCoeffs; i++) shs.push_back(0.0f);
+
+    modelHost.pushBack({0.0f, 0.0f, 0.0f}, shs, {0.3f, 0.3f, 0.3f}, 1.0f,
+                       glm::angleAxis(0.0f, glm::vec3(0.0f, 1.0f, 0.0f)));
+
+    delete trainer->model;
+    trainer->model = new ModelSplatsDevice(modelHost);
+    project->iterations = 0;
+}
+
+void UiFrame::initFieldModel() {
+    if (!std::filesystem::exists(project->pathModel)) {
+        wxMessageDialog dialog(this, "Failed to load the model file for splat field generation!", "Model Load Failed", wxICON_ERROR);
+        dialog.ShowModal();
+        return;
+    }
+
+    std::vector<owl::vec3f> vertices;
+    std::vector<owl::vec3i> triangles;
+
+    std::ifstream ifs(project->pathModel);
+    std::string line;
+    while(getline(ifs, line)) {
+        std::istringstream iss(line);
+        std::string prefix;
+        iss >> prefix;
+
+        if(prefix == "v") { // Vertex definition
+            float x, y, z;
+            iss >> x >> y >> z;
+            vertices.emplace_back(x, y, z);
+        }else if(prefix == "vt") { // Vertex definition
+            float u, v;
+            iss >> u >> v;
+        }else if(prefix == "f") { // Face definition
+            // Space-separated vertices list, with the syntax: vertexIndex/vertexTextureIndex/vertexNormalIndex
+            std::vector<owl::vec3i> faceVertices;
+
+            std::string sFaceVertex;
+            while(iss >> sFaceVertex) {
+                owl::vec3i faceVertex = {0, 0, 0};
+                int charIndex = 0;
+                while(charIndex < sFaceVertex.length() && sFaceVertex[charIndex] != '/'){
+                    faceVertex.x = faceVertex.x * 10 + (sFaceVertex[charIndex++] - '0');
+                }
+                charIndex++;
+                while(charIndex < sFaceVertex.length() && sFaceVertex[charIndex] != '/'){
+                    faceVertex.y = faceVertex.y * 10 + (sFaceVertex[charIndex++] - '0');
+                }
+                charIndex++;
+                while(charIndex < sFaceVertex.length() && sFaceVertex[charIndex] != '/'){
+                    faceVertex.z = faceVertex.z * 10 + (sFaceVertex[charIndex++] - '0');
+                }
+                faceVertices.push_back(faceVertex);
+            }
+            if(faceVertices.size() == 4) {
+                triangles.push_back(owl::vec3i(faceVertices[0].x, faceVertices[1].x, faceVertices[2].x) - owl::vec3i(1));
+                triangles.push_back(owl::vec3i(faceVertices[0].x, faceVertices[2].x, faceVertices[3].x) - owl::vec3i(1));
+            }else if(faceVertices.size() == 3) {
+                triangles.push_back(owl::vec3i(faceVertices[0].x, faceVertices[1].x, faceVertices[2].x) - owl::vec3i(1));
+            }else throw std::runtime_error("Unexpected vertex count in face list!" + std::to_string(faceVertices.size()));
+        }
+    }
+
+    ModelSplatsHost modelHost(1000000, 1, 4);
+
+    for(owl::vec3i triangle : triangles) {
+        glm::vec3 v0(vertices[triangle.x].x, vertices[triangle.x].y, vertices[triangle.x].z);
+        glm::vec3 v1(vertices[triangle.y].x, vertices[triangle.y].y, vertices[triangle.y].z);
+        glm::vec3 v2(vertices[triangle.z].x, vertices[triangle.z].y, vertices[triangle.z].z);
+
+        glm::vec3 location = (v0 + v1 + v2) / 3.0f;
+        glm::vec3 scale(glm::length(v1 - v0), glm::length(v2 - v0), 0.005f);
+        scale *= 0.2f;
+
+        std::vector<float> shs;
+        for(int i = 0; i < 3 * modelHost.shCoeffs; i++) shs.push_back(0.0f);
+
+        glm::vec3 up = glm::vec3(0.0f, 0.0f, 1.0f);
+        glm::vec3 dir = glm::normalize(glm::cross(v1 - v0, v2 - v0));
+
+        glm::vec3 axis = glm::cross(up, dir);
+        float angle = glm::acos(glm::dot(up, dir));
+
+        modelHost.pushBack(location, shs, scale, 1.0f, glm::angleAxis(angle, axis));
+    }
+
+    delete trainer->model;
+    trainer->model = new ModelSplatsDevice(modelHost);
+    project->iterations = 0;
 }
 
 void UiFrame::update() {
@@ -125,6 +259,7 @@ void UiFrame::refreshProject() {
 
     panelInput->refreshProject();
     panelOutput->refreshProject();
+    panelParams->refreshProject();
     panelTools->refreshProject();
 }
 
@@ -250,7 +385,40 @@ void UiFrame::loadSplats(const std::string& path) {
 }
 
 void UiFrame::onMenuButton(wxCommandEvent& event) {
-    if (event.GetId() == FILE_SAVE_PROJECT) {
+    if (event.GetId() == FILE_NEW_PROJECT) {
+
+        wxMessageDialog dialog(this, "This will reset the current project to a blank template! Are you sure?",
+                               "Overwrite Project?", wxOK | wxCANCEL | wxCANCEL_DEFAULT | wxICON_EXCLAMATION);
+        if (dialog.ShowModal() == wxID_CANCEL) return;
+        initProject();
+        initFieldGrid();
+        refreshProject();
+
+    }if (event.GetId() == FILE_NEW_FIELD_GRID) {
+
+        wxMessageDialog dialog(this, "This will reset the current splat field to a blank template! Are you sure?",
+                               "Overwrite Splats?", wxOK | wxCANCEL | wxCANCEL_DEFAULT | wxICON_EXCLAMATION);
+        if (dialog.ShowModal() == wxID_CANCEL) return;
+        initFieldGrid();
+        refreshProject();
+
+    }if (event.GetId() == FILE_NEW_FIELD_MONO) {
+
+        wxMessageDialog dialog(this, "This will reset the current splat field to a blank template! Are you sure?",
+                               "Overwrite Splats?", wxOK | wxCANCEL | wxCANCEL_DEFAULT | wxICON_EXCLAMATION);
+        if (dialog.ShowModal() == wxID_CANCEL) return;
+        initFieldMono();
+        refreshProject();
+
+    }if (event.GetId() == FILE_NEW_FIELD_MODEL) {
+
+        wxMessageDialog dialog(this, "This will reset the current splat field to a blank template! Are you sure?",
+                               "Overwrite Splats?", wxOK | wxCANCEL | wxCANCEL_DEFAULT | wxICON_EXCLAMATION);
+        if (dialog.ShowModal() == wxID_CANCEL) return;
+        initFieldModel();
+        refreshProject();
+
+    }else if (event.GetId() == FILE_SAVE_PROJECT) {
 
         wxDirDialog dialog(this, "Save Project", "");
         if (dialog.ShowModal() == wxID_CANCEL) return;

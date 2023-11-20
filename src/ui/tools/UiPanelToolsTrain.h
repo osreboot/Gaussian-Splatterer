@@ -17,23 +17,30 @@ private:
     wxButton* buttonAutoStart;
     wxButton* buttonAutoStop;
 
-    wxSpinCtrlDouble* spinLrLocation;
-    wxSpinCtrlDouble* spinLrSh;
-    wxSpinCtrlDouble* spinLrScale;
-    wxSpinCtrlDouble* spinLrOpacity;
-    wxSpinCtrlDouble* spinLrRotation;
+    wxButton* buttonManual1;
+    wxButton* buttonManual5;
+    wxButton* buttonManual10;
+    wxButton* buttonManual20;
+    wxButton* buttonManual50;
+    wxButton* buttonManual100;
+    wxButton* buttonManual200;
+    wxButton* buttonManualDensify;
 
     wxStaticText* textIntervalCapture;
     wxStaticText* textIntervalDensify;
     wxSpinCtrl* spinIntervalCapture;
     wxSpinCtrl* spinIntervalDensify;
 
-    enum ParameterIds {
-        LR_LOCATION,
-        LR_SH,
-        LR_SCALE,
-        LR_OPACITY,
-        LR_ROTATION
+    enum ManualIds {
+        M_1,
+        M_5,
+        M_10,
+        M_20,
+        M_50,
+        M_100,
+        M_200,
+        M_D,
+        M_END
     };
 
 public:
@@ -45,7 +52,7 @@ public:
     void onButtonAutoStart(wxCommandEvent& event);
     void onButtonAutoStop(wxCommandEvent& event);
 
-    void onSpinParameter(wxSpinDoubleEvent& event);
+    void onButtonManual(wxCommandEvent& event);
 
     void onSpinIntervalCapture(wxSpinEvent& event);
     void onSpinIntervalDensify(wxSpinEvent& event);

@@ -1,6 +1,10 @@
 #include "UiPanelToolsTrain.h"
 
+#include <wx/progdlg.h>
+
 #include "ui/UiPanelTools.h"
+#include "ui/UiPanelViewOutput.h"
+#include "Trainer.cuh"
 
 UiFrame& UiPanelToolsTrain::getFrame() const {
     return *dynamic_cast<UiFrame*>(GetParent()->GetParent()->GetParent());
@@ -29,59 +33,36 @@ UiPanelToolsTrain::UiPanelToolsTrain(wxWindow* parent) : wxPanel(parent) {
 
 
 
-    wxBoxSizer* sizerManual; // TODO
+    wxBoxSizer* sizerManual = new wxBoxSizer(wxVERTICAL);
+    sizer->Add(sizerManual, wxSizerFlags().Border());
+    sizerManual->Add(new wxStaticText(this, wxID_ANY, "Manual Train"));
 
+    wxBoxSizer* sizerManualH = new wxBoxSizer(wxHORIZONTAL);
+    sizerManual->Add(sizerManualH);
 
+    wxBoxSizer* sizerManual1 = new wxBoxSizer(wxVERTICAL);
+    sizerManualH->Add(sizerManual1);
+    wxBoxSizer* sizerManual2 = new wxBoxSizer(wxVERTICAL);
+    sizerManualH->Add(sizerManual2);
 
-    wxStaticBoxSizer* sizerLr = new wxStaticBoxSizer(wxHORIZONTAL, this, "Learning Rates");
-    sizer->Add(sizerLr, wxSizerFlags().Border());
+    buttonManual1 = new wxButton(this, M_1, "1x");
+    sizerManual1->Add(buttonManual1);
+    buttonManual5 = new wxButton(this, M_5, "5x");
+    sizerManual1->Add(buttonManual5);
+    buttonManual10 = new wxButton(this, M_10, "10x");
+    sizerManual1->Add(buttonManual10);
+    buttonManual20 = new wxButton(this, M_20, "20x");
+    sizerManual1->Add(buttonManual20);
+    buttonManual50 = new wxButton(this, M_50, "50x");
+    sizerManual2->Add(buttonManual50);
+    buttonManual100 = new wxButton(this, M_100, "100x");
+    sizerManual2->Add(buttonManual100);
+    buttonManual200 = new wxButton(this, M_200, "200x");
+    sizerManual2->Add(buttonManual200);
+    buttonManualDensify = new wxButton(this, M_D, "1x Densify");
+    sizerManual2->Add(buttonManualDensify);
 
-    wxBoxSizer* sizerLr1 = new wxBoxSizer(wxVERTICAL);
-    sizerLr->Add(sizerLr1, wxSizerFlags().Border());
-    wxBoxSizer* sizerLr2 = new wxBoxSizer(wxVERTICAL);
-    sizerLr->Add(sizerLr2, wxSizerFlags().Border());
-    wxBoxSizer* sizerLr3 = new wxBoxSizer(wxVERTICAL);
-    sizerLr->Add(sizerLr3, wxSizerFlags().Border());
-
-    sizerLr1->Add(new wxStaticText(this, wxID_ANY, "Location"));
-    spinLrLocation = new wxSpinCtrlDouble(this, LR_LOCATION);
-    spinLrLocation->SetRange(0.0f, 10.0f);
-    spinLrLocation->SetDigits(8);
-    spinLrLocation->SetIncrement(0.0000001);
-    spinLrLocation->SetMinSize({96, -1});
-    sizerLr1->Add(spinLrLocation);
-
-    sizerLr1->Add(new wxStaticText(this, wxID_ANY, "Color (SHs)"), wxSizerFlags().Border(wxUP));
-    spinLrSh = new wxSpinCtrlDouble(this, LR_SH);
-    spinLrSh->SetRange(0.0f, 10.0f);
-    spinLrSh->SetDigits(8);
-    spinLrSh->SetIncrement(0.0000001);
-    spinLrSh->SetMinSize({96, -1});
-    sizerLr1->Add(spinLrSh);
-
-    sizerLr2->Add(new wxStaticText(this, wxID_ANY, "Scale"));
-    spinLrScale = new wxSpinCtrlDouble(this, LR_SCALE);
-    spinLrScale->SetRange(0.0f, 10.0f);
-    spinLrScale->SetDigits(8);
-    spinLrScale->SetIncrement(0.0000001);
-    spinLrScale->SetMinSize({96, -1});
-    sizerLr2->Add(spinLrScale);
-
-    sizerLr2->Add(new wxStaticText(this, wxID_ANY, "Opacity"), wxSizerFlags().Border(wxUP));
-    spinLrOpacity = new wxSpinCtrlDouble(this, LR_OPACITY);
-    spinLrOpacity->SetRange(0.0f, 10.0f);
-    spinLrOpacity->SetDigits(8);
-    spinLrOpacity->SetIncrement(0.0000001);
-    spinLrOpacity->SetMinSize({96, -1});
-    sizerLr2->Add(spinLrOpacity);
-
-    sizerLr3->Add(new wxStaticText(this, wxID_ANY, "Rotation"));
-    spinLrRotation = new wxSpinCtrlDouble(this, LR_ROTATION);
-    spinLrRotation->SetRange(0.0f, 10.0f);
-    spinLrRotation->SetDigits(8);
-    spinLrRotation->SetIncrement(0.0000001);
-    spinLrRotation->SetMinSize({96, -1});
-    sizerLr3->Add(spinLrRotation);
+    Bind(wxEVT_COMMAND_BUTTON_CLICKED, &UiPanelToolsTrain::onButtonManual, this);
 
 
 
@@ -109,20 +90,10 @@ UiPanelToolsTrain::UiPanelToolsTrain(wxWindow* parent) : wxPanel(parent) {
 
 
 
-    Bind(wxEVT_COMMAND_SPINCTRLDOUBLE_UPDATED, &UiPanelToolsTrain::onSpinParameter, this);
-
-
-
     SetSizerAndFit(sizer);
 }
 
 void UiPanelToolsTrain::refreshProject() {
-    spinLrLocation->SetValue(getProject().lrLocation);
-    spinLrSh->SetValue(getProject().lrSh);
-    spinLrScale->SetValue(getProject().lrScale);
-    spinLrOpacity->SetValue(getProject().lrOpacity);
-    spinLrRotation->SetValue(getProject().lrRotation);
-
     spinIntervalCapture->SetValue(getProject().intervalCapture);
     spinIntervalDensify->SetValue(getProject().intervalDensify);
     refreshText();
@@ -143,23 +114,66 @@ void UiPanelToolsTrain::onButtonAutoStart(wxCommandEvent& event) {
     getFrame().autoTraining = true;
     buttonAutoStart->Disable();
     buttonAutoStop->Enable();
+
+    buttonManual1->Disable();
+    buttonManual5->Disable();
+    buttonManual10->Disable();
+    buttonManual20->Disable();
+    buttonManual50->Disable();
+    buttonManual100->Disable();
+    buttonManual200->Disable();
+    buttonManualDensify->Disable();
 }
 
 void UiPanelToolsTrain::onButtonAutoStop(wxCommandEvent& event) {
     getFrame().autoTraining = false;
     buttonAutoStart->Enable();
     buttonAutoStop->Disable();
+
+    buttonManual1->Enable();
+    buttonManual5->Enable();
+    buttonManual10->Enable();
+    buttonManual20->Enable();
+    buttonManual50->Enable();
+    buttonManual100->Enable();
+    buttonManual200->Enable();
+    buttonManualDensify->Enable();
 }
 
-void UiPanelToolsTrain::onSpinParameter(wxSpinDoubleEvent& event) {
+void UiPanelToolsTrain::onButtonManual(wxCommandEvent& event) {
+    bool isManualButton = false;
+    for (int i = ManualIds::M_1; i < ManualIds::M_END; i++) {
+        if (event.GetId() == i) {
+            isManualButton = true;
+            break;
+        }
+    }
+    if (!isManualButton) return;
+
+    int count = 1;
+    bool densify = false;
     switch(event.GetId()) {
-        case ParameterIds::LR_LOCATION: getProject().lrLocation = (float)event.GetValue(); break;
-        case ParameterIds::LR_SH: getProject().lrSh = (float)event.GetValue(); break;
-        case ParameterIds::LR_SCALE: getProject().lrScale = (float)event.GetValue(); break;
-        case ParameterIds::LR_OPACITY: getProject().lrOpacity = (float)event.GetValue(); break;
-        case ParameterIds::LR_ROTATION: getProject().lrRotation = (float)event.GetValue(); break;
+        case ManualIds::M_5: count = 5; break;
+        case ManualIds::M_10: count = 10; break;
+        case ManualIds::M_20: count = 20; break;
+        case ManualIds::M_50: count = 50; break;
+        case ManualIds::M_100: count = 100; break;
+        case ManualIds::M_200: count = 200; break;
+        case ManualIds::M_D: densify = true; break;
         default: break;
     }
+
+    if (count > 1) {
+        wxProgressDialog dialog("Training Gaussian Splats", "Training for " + std::to_string(count) + " iterations...",
+                                count, getFrame().panelOutput, wxPD_AUTO_HIDE);
+        for (int i = 0; i < count; i++) {
+            getFrame().trainer->train(getProject(), densify);
+            dialog.Update(i + 1);
+        }
+    } else getFrame().trainer->train(getProject(), densify);
+
+    getFrame().panelOutput->refreshText();
+    refreshText();
 }
 
 void UiPanelToolsTrain::onSpinIntervalCapture(wxSpinEvent& event) {

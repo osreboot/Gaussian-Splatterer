@@ -9,6 +9,7 @@ class Trainer;
 
 class UiPanelViewInput;
 class UiPanelViewOutput;
+class UiPanelParams;
 class UiPanelTools;
 
 class UiFrame : public wxFrame {
@@ -23,20 +24,21 @@ private:
     float autoTrainingBudget = 0.0f;
 
 public:
-    Project* project;
+    Project* project = nullptr;
 
     RtxHost* rtx;
     Trainer* trainer;
 
     wxMenuBar* menuBar;
     wxMenu* menuFile;
-    wxMenu* menuFileInit;
+    wxMenu* menuFileNew;
     wxMenu* menuFileLoad;
     wxMenu* menuFileSave;
     wxMenu* menuAbout;
 
     UiPanelViewInput* panelInput;
     UiPanelViewOutput* panelOutput;
+    UiPanelParams* panelParams;
     UiPanelTools* panelTools;
 
     bool autoTraining = false;
@@ -45,6 +47,11 @@ public:
     ~UiFrame() override;
 
 private:
+    void initProject();
+    void initFieldGrid();
+    void initFieldMono();
+    void initFieldModel();
+
     void update();
 
     void refreshProject();
@@ -63,6 +70,10 @@ private:
     DECLARE_EVENT_TABLE();
 
     enum MenuIds {
+        FILE_NEW_PROJECT,
+        FILE_NEW_FIELD_GRID,
+        FILE_NEW_FIELD_MONO,
+        FILE_NEW_FIELD_MODEL,
         FILE_SAVE_PROJECT,
         FILE_SAVE_SPLATS,
         FILE_SAVE_SETTINGS,

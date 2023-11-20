@@ -59,7 +59,6 @@ public:
 
     void captureTruths(const Project& project, RtxHost& rtx);
 
-    void train(Project& project, int iterations);
     void train(Project& project, bool densify);
 
 };

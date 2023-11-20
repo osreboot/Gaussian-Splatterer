@@ -104,30 +104,7 @@ Trainer::Trainer() {
     cudaMalloc(&devCameraLocation, 3 * sizeof(float));
     cudaMalloc(&devRasterized, RENDER_RESOLUTION_X * RENDER_RESOLUTION_Y * 3 * sizeof(float));
 
-    // Scene-sized cube initialization
-    ModelSplatsHost modelHost(1000000, 1, 4);
-
-    static const float dim = 4.0f;
-    static const float step = 0.5f;
-
-    std::vector<float> shs;
-    for(int i = 0; i < 3 * modelHost.shCoeffs; i++) shs.push_back(0.0f);
-
-    for(float x = -dim; x <= dim; x += step){
-        for(float y = -dim; y <= dim; y += step){
-            for(float z = -dim; z <= dim; z += step){
-                modelHost.pushBack({x, y, z}, shs, {step * 0.1f, step * 0.1f, step * 0.1f},
-                                1.0f, glm::angleAxis(0.0f, glm::vec3(0.0f, 1.0f, 0.0f)));
-                //modelHost.pushBack({x, y, z}, {0.0f, 0.0f, 0.0f}, {step * 0.1f, step * 0.1f, step * 0.1f},
-                //                1.0f, glm::angleAxis(0.0f, glm::vec3(0.0f, 1.0f, 0.0f)));
-            }
-        }
-    }
-
-    //modelHost.pushBack({0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}, {0.1f, 0.1f, 0.3f},
-    //                1.0f, glm::angleAxis(45.0f, glm::vec3(0.0f, 1.0f, 0.0f)));
-
-    model = new ModelSplatsDevice(modelHost);
+    model = new ModelSplatsDevice(ModelSplatsHost(0, 0, 1));
 }
 
 Trainer::~Trainer() {
@@ -256,10 +233,6 @@ void Trainer::captureTruths(const Project& project, RtxHost& rtx) {
             truthCameras.at(i) = cameras.at(i);
         }
     }
-}
-
-void Trainer::train(Project& project, int iter) {
-    for(int i = 0; i < iter; i++) train(project, false);
 }
 
 void Trainer::train(Project& project, bool densify) {
