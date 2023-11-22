@@ -11,8 +11,8 @@ Project& UiPanelTools::getProject() const {
 UiPanelTools::UiPanelTools(wxWindow *parent) : wxPanel(parent) {
     sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    sizerStaticInput = new wxStaticBoxSizer(wxVERTICAL, this, "1. Input Model Data");
-    sizer->Add(sizerStaticInput, wxSizerFlags().Expand().Border());
+    panelInput = new UiPanelToolsInput(this);
+    sizer->Add(panelInput, wxSizerFlags().Expand().Border());
 
     panelTruth = new UiPanelToolsTruth(this);
     sizer->Add(panelTruth, wxSizerFlags().Expand().Border());
@@ -28,6 +28,7 @@ UiPanelTools::UiPanelTools(wxWindow *parent) : wxPanel(parent) {
 }
 
 void UiPanelTools::refreshProject() {
+    panelInput->refreshProject();
     panelTruth->refreshProject();
     panelTrain->refreshProject();
     panelView->refreshProject();

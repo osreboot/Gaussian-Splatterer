@@ -4,6 +4,8 @@
 #include <wx/spinctrl.h>
 
 #include "ui/params/UiPanelParamsLr.h"
+#include "ui/params/UiPanelParamsDensify.h"
+#include "ui/params/UiPanelParamsOther.h"
 
 class UiPanelParams : public wxPanel {
 
@@ -14,6 +16,8 @@ private:
 
 public:
     UiPanelParamsLr* panelLr;
+    UiPanelParamsDensify* panelDensify;
+    UiPanelParamsOther* panelOther;
 
     UiPanelParams(wxWindow* parent);
 

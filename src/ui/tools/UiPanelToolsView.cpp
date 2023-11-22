@@ -26,12 +26,21 @@ UiPanelToolsView::UiPanelToolsView(wxWindow* parent) : wxPanel(parent) {
     wxBoxSizer* sizerControls = new wxBoxSizer(wxVERTICAL);
     sizer->Add(sizerControls, wxSizerFlags().Border());
 
-    sizerControls->Add(new wxStaticText(this, wxID_ANY, "View RT Samples"), wxSizerFlags().Border(wxUP));
+    sizerControls->Add(new wxStaticText(this, wxID_ANY, "View RT Samples"));
     spinCamRtSamples = new wxSpinCtrl(this);
     spinCamRtSamples->SetRange(1, 5000);
     spinCamRtSamples->SetMinSize({64, -1});
     spinCamRtSamples->Bind(wxEVT_COMMAND_SPINCTRL_UPDATED, &UiPanelToolsView::onSpinCamRtSamples, this);
     sizerControls->Add(spinCamRtSamples);
+
+    sizerControls->Add(new wxStaticText(this, wxID_ANY, "View Splat Scale"), wxSizerFlags().Border(wxUP));
+    spinSplatScale = new wxSpinCtrlDouble(this);
+    spinSplatScale->SetRange(0.0f, 1.0f);
+    spinSplatScale->SetDigits(2);
+    spinSplatScale->SetIncrement(0.1);
+    spinSplatScale->SetMinSize({64, -1});
+    spinSplatScale->Bind(wxEVT_COMMAND_SPINCTRLDOUBLE_UPDATED, &UiPanelToolsView::onSpinSplatScale, this);
+    sizerControls->Add(spinSplatScale);
 
 
 
@@ -71,9 +80,9 @@ UiPanelToolsView::UiPanelToolsView(wxWindow* parent) : wxPanel(parent) {
 
     sizerCamFree1->Add(new wxStaticText(this, wxID_ANY, "FOV (Y Deg.)"), wxSizerFlags().Border(wxUP));
     spinCamFreeFov = new wxSpinCtrlDouble(this, F_FOV);
-    spinCamFreeFov->SetRange(10.0, 120.0);
+    spinCamFreeFov->SetRange(5.0, 120.0);
     spinCamFreeFov->SetDigits(1);
-    spinCamFreeFov->SetIncrement(0.1);
+    spinCamFreeFov->SetIncrement(1.0);
     spinCamFreeFov->SetMinSize({64, -1});
     sizerCamFree1->Add(spinCamFreeFov);
 
@@ -126,7 +135,7 @@ UiPanelToolsView::UiPanelToolsView(wxWindow* parent) : wxPanel(parent) {
     wxBoxSizer* sizerRender2 = new wxBoxSizer(wxVERTICAL);
     sizerRender->Add(sizerRender2, wxSizerFlags().Border());
 
-    buttonRenderRtx = new wxButton(this, wxID_ANY, "Render Ray Tracer");
+    buttonRenderRtx = new wxButton(this, wxID_ANY, "Render Ray\nTracer");
     buttonRenderRtx->SetMinSize({-1, 40});
     buttonRenderRtx->Bind(wxEVT_COMMAND_BUTTON_CLICKED, &UiPanelToolsView::onButtonRenderRtx, this);
     sizerRender2->Add(buttonRenderRtx, wxSizerFlags().Expand().Border(wxUP | wxLEFT | wxRIGHT));
@@ -147,6 +156,7 @@ UiPanelToolsView::UiPanelToolsView(wxWindow* parent) : wxPanel(parent) {
 
 void UiPanelToolsView::refreshProject() {
     spinCamRtSamples->SetValue(getProject().previewRtSamples);
+    spinSplatScale->SetValue(getProject().previewSplatScale);
 
     checkCamRef->SetValue(getProject().previewTruth);
     spinCamRefIdx->SetValue(getProject().previewTruthIndex);
@@ -191,6 +201,10 @@ void UiPanelToolsView::onSpinCamRefIdx(wxSpinEvent& event) {
 
 void UiPanelToolsView::onSpinCamRtSamples(wxSpinEvent& event) {
     getProject().previewRtSamples = event.GetValue();
+}
+
+void UiPanelToolsView::onSpinSplatScale(wxSpinDoubleEvent& event) {
+    getProject().previewSplatScale = event.GetValue();
 }
 
 void UiPanelToolsView::onCheckCamFreeOrbit(wxCommandEvent& event) {
@@ -239,7 +253,7 @@ void UiPanelToolsView::onButtonRenderSplats(wxCommandEvent& event) {
     uint32_t* frameBuffer;
     cudaMallocManaged(&frameBuffer, getProject().renderResX * getProject().renderResY * sizeof(uint32_t));
 
-    getFrame().trainer->render(frameBuffer, getProject().renderResX, getProject().renderResY, Camera::getPreviewCamera(getProject()));
+    getFrame().trainer->render(frameBuffer, getProject().renderResX, getProject().renderResY, 1.0f, Camera::getPreviewCamera(getProject()));
 
     stbi_flip_vertically_on_write(true);
     stbi_write_png(dialog.GetPath().ToStdString().c_str(), getProject().renderResX, getProject().renderResY, 4,

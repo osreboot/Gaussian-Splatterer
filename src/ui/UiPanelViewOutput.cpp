@@ -58,7 +58,8 @@ void UiPanelViewOutput::refreshText() {
 void UiPanelViewOutput::render() {
     canvas->SetCurrent(*context);
 
-    getFrame().trainer->render(renderer->frameBuffer, RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y, Camera::getPreviewCamera(getProject()));
+    getFrame().trainer->render(renderer->frameBuffer, RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y,
+                               getProject().previewSplatScale, Camera::getPreviewCamera(getProject()));
 
     renderer->render(canvas->GetSize().x, canvas->GetSize().y);
     canvas->SwapBuffers();

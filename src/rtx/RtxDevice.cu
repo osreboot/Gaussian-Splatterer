@@ -15,19 +15,29 @@ inline __device__ vec3f randomUnitSphere(LCG<4>& random) {
 
 // Tracks a ray through multiple bounces in the world
 inline __device__ vec3f tracePath(const RayGenerator& rayGen, Ray& ray, PerRayData& prd) {
-    vec3f attenuation = vec3f(1.0f);
+    vec3f colorAtten = vec3f(1.0f);
+
+    bool hasReflected = false;
+
     // Loop as long as we haven't reached the maximum bounce depth
-    for(int i = 0; i < 50; i++){
-        prd.hitDetected = false;
+    for (int i = 0; i < 50; i++) {
+        prd.shouldTerminate = true;
+        prd.reflected = false;
 
         // Launch the ray
         traceRay(rayGen.worldHandle, ray, prd);
 
-        attenuation *= prd.color;
+        /*
+        vec3f colorAccum3 = vec3f(colorAccum.x, colorAccum.y, colorAccum.z) + vec3f(prd.color.x, prd.color.y, prd.color.z) * (1.0f - colorAccum.w);
+        float colorAccumA = 1.0f - (1.0f - colorAccum.w) * (1.0f - prd.color.w);
+        colorAccum = vec4f(colorAccum3, colorAccumA);*/
 
-        if(i == 0) {
+        colorAtten *= vec3f(prd.color.x, prd.color.y, prd.color.z);
+        if (prd.reflected) hasReflected = true;
+
+        if (i == 0) {
             for (int c = 0; c < rayGen.splatCamerasCount; c++) {
-                if(prd.hitDetected && dot(ray.direction, rayGen.splatCameras[c] - ray.origin) > dot(ray.direction, prd.hitOrigin - ray.origin)) continue;
+                if(!prd.shouldTerminate && dot(ray.direction, rayGen.splatCameras[c] - ray.origin) > dot(ray.direction, prd.hitOrigin - ray.origin)) continue;
 
                 vec3f rayClosest = ray.origin + ray.direction * dot(ray.direction, rayGen.splatCameras[c] - ray.origin);
                 vec3f rayDelta = rayGen.splatCameras[c] - rayClosest;
@@ -39,7 +49,7 @@ inline __device__ vec3f tracePath(const RayGenerator& rayGen, Ray& ray, PerRayDa
         }
 
         // The ray hit the sky or a light source
-        if(!prd.hitDetected) return i == 0 ? rayGen.background : attenuation;
+        if (prd.shouldTerminate) return hasReflected ? colorAtten : rayGen.background;
 
         // Re-initialize the ray based on collision parameters
         ray = Ray(prd.hitOrigin, prd.bounceDirection, 1e-3f, 1e10f);
@@ -109,39 +119,43 @@ OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)() {
     const vec3f rd = optixGetWorldRayDirection();
     const vec3f rdn = normalize(rd);
 
-    // Calculate the position of the collision
-    prd.hitOrigin = ro + optixGetRayTmax() * rd;
-
-    // Calculate reflected direction
-    vec3f directionReflect = rd - 2.0f * dot(rd, normalSurface) * normalSurface;
-    if(prd.random() > material.reflectivity){ // Scattering for lambertians
-        directionReflect = normalSurface + randomUnitSphere(prd.random);
-    }
-
-    // Assign final ray data based on all the above calculations
-    prd.bounceDirection = directionReflect;
-
-    // Diffuse material scattering
-    prd.bounceDirection += material.diffuse * randomUnitSphere(prd.random);
-
-    bool glossyBounce = material.gloss > 0.0f && prd.random() < material.gloss;
-
     vec2f uv = optixGetTriangleBarycentrics();
     vec2f textureCoord = (1.0f - uv.x - uv.y) * world.textureCoords[indexPrimitive * 3] +
                          uv.x * world.textureCoords[indexPrimitive * 3 + 1] +
                          uv.y * world.textureCoords[indexPrimitive * 3 + 2];
-    vec3f colorTexture = material.textureDiffuse > -1 ? vec3f(tex2D<float4>(world.textures[material.textureDiffuse], textureCoord.x, 1.0f - textureCoord.y)) : vec3f(1.0f);
+    vec4f colorTexture = vec4f(tex2D<float4>(world.textures[TEXTURE_DIFFUSE], textureCoord.x, 1.0f - textureCoord.y));
 
-    prd.color = glossyBounce ? vec3f(1.0f) : (material.color * colorTexture);
+    // Calculate the position of the collision
+    prd.hitOrigin = ro + optixGetRayTmax() * rd;
 
-    prd.hitDetected = !material.fullbright;
+    if (colorTexture.w > prd.random()) { // Ray collided with the material
+        // Calculate reflected direction
+        vec3f directionReflect = rd - 2.0f * dot(rd, normalSurface) * normalSurface;
+        if(prd.random() > material.reflectivity){ // Scattering for lambertians
+            directionReflect = normalSurface + randomUnitSphere(prd.random);
+        }
+
+        // Assign final ray data based on all the above calculations
+        prd.bounceDirection = directionReflect;
+
+        // Diffuse material scattering
+        prd.bounceDirection += material.diffuse * randomUnitSphere(prd.random);
+
+        prd.color = material.color * vec3f(colorTexture.x, colorTexture.y, colorTexture.z);
+        prd.reflected = true;
+    } else { // Ray passed through the material
+        prd.bounceDirection = rdn;
+        prd.color = vec3f(1.0f);
+    }
+
+    prd.shouldTerminate = material.fullbright;
 }
 
 // Ray miss program
 OPTIX_MISS_PROGRAM(miss)() {
     PerRayData& prd = getPRD<PerRayData>();
 
-    prd.hitDetected = false;
+    prd.shouldTerminate = true;
 
     vec3f rayNormal = normalize(vec3f(optixGetWorldRayDirection()));
     prd.color = vec3f(min(1.0f, 1.0f + rayNormal.y));

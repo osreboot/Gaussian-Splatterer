@@ -19,8 +19,14 @@ target_sources(${PROJECT_NAME} PRIVATE
         rtx/RtxHost.h
         ui/dialog/UiDialogAbout.cpp
         ui/dialog/UiDialogAbout.h
+        ui/params/UiPanelParamsDensify.cpp
+        ui/params/UiPanelParamsDensify.h
         ui/params/UiPanelParamsLr.cpp
         ui/params/UiPanelParamsLr.h
+        ui/params/UiPanelParamsOther.cpp
+        ui/params/UiPanelParamsOther.h
+        ui/tools/UiPanelToolsInput.cpp
+        ui/tools/UiPanelToolsInput.h
         ui/tools/UiPanelToolsTrain.cpp
         ui/tools/UiPanelToolsTrain.h
         ui/tools/UiPanelToolsTruth.cpp

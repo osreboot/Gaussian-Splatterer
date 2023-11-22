@@ -78,7 +78,7 @@ __global__ void accumulateVariance(float* varLocations, const float* gradLocatio
 __global__ void applyGradients(float* locations, float* shs, float* scales, float* opacities, float* rotations,
                                const float* gradLocations, const float* gradShs, const float* gradScales, const float* gradOpacities, const float* gradRotations,
                                const float lr, const float lrSh, const float lrScale, const float lrOpacity, const float lrRotation,
-                               const int shCoeffs, const int step, const int count) {
+                               const float maxScale, const int shCoeffs, const int step, const int count) {
     for(int i = blockIdx.x * blockDim.x + threadIdx.x; i < count; i += step){
         for(int f = 0; f < 3; f++) {
             locations[i * 3 + f] += gradLocations[i * 3 + f] * lr;
@@ -88,7 +88,7 @@ __global__ void applyGradients(float* locations, float* shs, float* scales, floa
         }
         for(int f = 0; f < 3; f++) {
             scales[i * 3 + f] += gradScales[i * 3 + f] * lrScale;
-            scales[i * 3 + f] = min(0.3f, max(0.0f, scales[i * 3 + f]));
+            scales[i * 3 + f] = min(maxScale, max(0.0f, scales[i * 3 + f]));
         }
         opacities[i] = min(1.0f, max(0.0f, opacities[i] + gradOpacities[i] * lrOpacity));
         for(int f = 0; f < 4; f++) {
@@ -140,7 +140,7 @@ Trainer::~Trainer() {
     for (uint32_t* frameBuffer : truthFrameBuffersB) cudaFree(frameBuffer);
 }
 
-void Trainer::render(uint32_t* frameBuffer, int sizeX, int sizeY, const Camera& camera) {
+void Trainer::render(uint32_t* frameBuffer, int sizeX, int sizeY, float splatScale, const Camera& camera) {
     std::vector<float> background = {0.0f, 0.0f, 0.0f};
     cudaMemcpy(devBackground, background.data(), 3 * sizeof(float), cudaMemcpyHostToDevice);
 
@@ -177,7 +177,7 @@ void Trainer::render(uint32_t* frameBuffer, int sizeX, int sizeY, const Camera& 
             nullptr,
             model->devOpacities,
             model->devScales,
-            1.0f,
+            splatScale,
             model->devRotations,
             nullptr,
             devMatView,
@@ -403,13 +403,13 @@ void Trainer::train(Project& project, bool densify) {
     applyGradients<<<256, 256>>>(model->devLocations, model->devShs, model->devScales, model->devOpacities, model->devRotations,
                                  devAvgGradLocations, devAvgGradShs, devAvgGradScales, devAvgGradOpacities, devAvgGradRotations,
                                  project.lrLocation, project.lrSh, project.lrScale, project.lrOpacity, project.lrRotation,
-                                 model->shCoeffs, 256 * 256, model->count);
+                                 project.paramScaleMax, model->shCoeffs, 256 * 256, model->count);
 
 
     if(densify) {
         // This is a densify iteration, so transfer the model back to host memory. The complex splitting/pruning
-        // operations easier here than on the GPU! This is slower, but it's only about 1/100 iterations so the tradeoff
-        // is worth it.
+        // operations are easier here than on the GPU! This is slower, but it's only about 1/100 iterations so the
+        // tradeoff is worth it.
         ModelSplatsHost modelHost(*model);
 
 
@@ -420,10 +420,11 @@ void Trainer::train(Project& project, bool densify) {
 
         std::unordered_set<int> toSplit, toClone, toRemove;
         for(int i = 0; i < modelHost.count; i++) {
-            if (modelHost.opacities[i] <= 0.005f || glm::length(glm::vec3(modelHost.scales[i * 3], modelHost.scales[i * 3 + 1], modelHost.scales[i * 3 + 2])) < 0.0001f) {
+            if (modelHost.opacities[i] <= project.paramCullOpacity ||
+                glm::length(glm::vec3(modelHost.scales[i * 3], modelHost.scales[i * 3 + 1], modelHost.scales[i * 3 + 2])) < project.paramCullSize) {
                 toRemove.insert(i);
-            } else if (varLocations[i] > 2.0f) {
-                if (glm::length(glm::vec3(modelHost.scales[i * 3], modelHost.scales[i * 3 + 1], modelHost.scales[i * 3 + 2])) > 0.02f) toSplit.insert(i);
+            } else if (varLocations[i] > project.paramSplitVariance) {
+                if (glm::length(glm::vec3(modelHost.scales[i * 3], modelHost.scales[i * 3 + 1], modelHost.scales[i * 3 + 2])) > project.paramSplitSize) toSplit.insert(i);
                 else toClone.insert(i);
             }
         }
@@ -445,10 +446,10 @@ void Trainer::train(Project& project, bool densify) {
 
                 scaleOffset4 = (glm::mat4)rotPre * scaleOffset4;
 
-                glm::vec3 locNew1 = locPre + glm::vec3(scaleOffset4.x, scaleOffset4.y, scaleOffset4.z) * 0.75f;
-                glm::vec3 locNew2 = locPre - glm::vec3(scaleOffset4.x, scaleOffset4.y, scaleOffset4.z) * 0.75f;
+                glm::vec3 locNew1 = locPre + glm::vec3(scaleOffset4.x / scaleOffset4.w, scaleOffset4.y / scaleOffset4.w, scaleOffset4.z / scaleOffset4.w) * project.paramSplitDistance * 0.5f;
+                glm::vec3 locNew2 = locPre - glm::vec3(scaleOffset4.x / scaleOffset4.w, scaleOffset4.y / scaleOffset4.w, scaleOffset4.z / scaleOffset4.w) * project.paramSplitDistance * 0.5f;
 
-                glm::vec3 scaleNew = glm::vec3(modelHost.scales[i * 3], modelHost.scales[i * 3 + 1], modelHost.scales[i * 3 + 2]) / 2.0f;
+                glm::vec3 scaleNew = glm::vec3(modelHost.scales[i * 3], modelHost.scales[i * 3 + 1], modelHost.scales[i * 3 + 2]) * project.paramSplitScale;
 
                 int i2 = modelHost.count;
                 modelHost.count++;
@@ -466,9 +467,14 @@ void Trainer::train(Project& project, bool densify) {
         for (int i : toClone) {
             if (modelHost.count < modelHost.capacity) {
                 glm::vec3 loc(modelHost.locations[i * 3], modelHost.locations[i * 3 + 1], modelHost.locations[i * 3 + 2]);
-                loc += glm::vec3(gradLocations[i * 3] * project.lrLocation,
-                                 gradLocations[i * 3 + 1] * project.lrLocation,
-                                 gradLocations[i * 3 + 2] * project.lrLocation);
+                glm::vec3 scale(modelHost.scales[i * 3], modelHost.scales[i * 3 + 1], modelHost.scales[i * 3 + 2]);
+                glm::quat rot(modelHost.rotations[i * 4], modelHost.rotations[i * 4 + 1], modelHost.rotations[i * 4 + 2], modelHost.rotations[i * 4 + 3]);
+
+                glm::vec3 dirGradient = glm::normalize(glm::vec3(gradLocations[i * 3], gradLocations[i * 3 + 1], gradLocations[i * 3 + 2]));
+
+                glm::vec4 offset4 = (glm::mat4)rot * glm::vec4(scale.x, scale.y, scale.z, 1.0f);
+
+                loc += glm::vec3(offset4.x / offset4.w, offset4.y / offset4.w, offset4.z / offset4.w) * dirGradient * project.paramCloneDistance;
 
                 int i2 = modelHost.count;
                 modelHost.count++;

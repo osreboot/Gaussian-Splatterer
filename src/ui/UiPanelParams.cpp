@@ -13,9 +13,17 @@ UiPanelParams::UiPanelParams(wxWindow *parent) : wxPanel(parent) {
     panelLr = new UiPanelParamsLr(this);
     sizer->Add(panelLr, wxSizerFlags().Expand().Border());
 
+    panelDensify = new UiPanelParamsDensify(this);
+    sizer->Add(panelDensify, wxSizerFlags().Expand().Border());
+
+    panelOther = new UiPanelParamsOther(this);
+    sizer->Add(panelOther, wxSizerFlags().Expand().Border());
+
     SetSizerAndFit(sizer);
 }
 
 void UiPanelParams::refreshProject() {
     panelLr->refreshProject();
+    panelDensify->refreshProject();
+    panelOther->refreshProject();
 }

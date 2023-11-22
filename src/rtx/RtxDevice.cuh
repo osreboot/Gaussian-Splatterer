@@ -7,6 +7,9 @@
 #define PROGRAM_EXPOSURE_FACTOR 1.0f
 #define SPLAT_CAMERA_DOT_SIZE 0.025f
 
+#define TEXTURE_COUNT 1
+#define TEXTURE_DIFFUSE 0
+
 // Material properties
 struct Material {
     bool fullbright; // Is it a light source?
@@ -44,9 +47,10 @@ struct RayGenerator {
 // Data associated with each ray
 struct PerRayData {
     owl::LCG<4> random; // A random object
-    bool hitDetected; // Did the ray hit something?
+    bool shouldTerminate; // Did the ray hit the sky or a light source?
     owl::vec3f hitOrigin; // Collision location
     owl::vec3f bounceDirection; // New ray direction (post-collision)
     owl::vec3f color; // New ray color (post-collision)
     bool splatTouchesCamera = false;
+    bool reflected = false;
 };

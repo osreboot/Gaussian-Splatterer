@@ -3,6 +3,7 @@
 #include <wx/wx.h>
 #include <wx/spinctrl.h>
 
+#include "ui/tools/UiPanelToolsInput.h"
 #include "ui/tools/UiPanelToolsTrain.h"
 #include "ui/tools/UiPanelToolsTruth.h"
 #include "ui/tools/UiPanelToolsView.h"
@@ -14,9 +15,8 @@ private:
 
     wxBoxSizer* sizer;
 
-    wxStaticBoxSizer* sizerStaticInput;
-
 public:
+    UiPanelToolsInput* panelInput;
     UiPanelToolsTruth* panelTruth;
     UiPanelToolsTrain* panelTrain;
     UiPanelToolsView* panelView;

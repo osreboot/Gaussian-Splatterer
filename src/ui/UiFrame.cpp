@@ -26,7 +26,6 @@ UiFrame::UiFrame() :
     initProject();
 
     rtx = new RtxHost();
-    rtx->load(*project);
 
     trainer = new Trainer();
     initFieldGrid();
@@ -76,7 +75,6 @@ UiFrame::UiFrame() :
     sizerViews->Add(panelOutput, wxSizerFlags(1).Expand().Border());
 
     panelParams = new UiPanelParams(panel);
-    panelParams->SetMinSize({128, -1});
     sizerViews->Add(panelParams, wxSizerFlags().Border());
 
     panelTools = new UiPanelTools(panel);
@@ -98,8 +96,6 @@ void UiFrame::initProject() {
     delete project;
     project = new Project();
     project->sphere2.fovDeg = 30.0f;
-    project->pathModel = R"(C:\Users\Calvin\Desktop\Archives\Development\Resources\Gecko 3d model\Splats\Gecko.obj)";
-    project->pathTexture = R"(C:\Users\Calvin\Desktop\Archives\Development\Resources\Gecko 3d model\Splats\Gecko.BMP)";
 }
 
 void UiFrame::initFieldGrid() {
@@ -251,7 +247,8 @@ void UiFrame::update() {
 }
 
 void UiFrame::refreshProject() {
-    // TODO load new model here
+    rtx->reset();
+
     // TODO nuke trainer captures
 
     // TODO stop auto training

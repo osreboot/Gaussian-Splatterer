@@ -15,6 +15,7 @@ private:
     wxStaticBoxSizer* sizer;
 
     wxSpinCtrl* spinCamRtSamples;
+    wxSpinCtrlDouble* spinSplatScale;
 
     wxCheckBox* checkCamRef;
     wxSpinCtrl* spinCamRefIdx;
@@ -50,6 +51,7 @@ public:
     void onCheckCamRef(wxCommandEvent& event);
     void onSpinCamRefIdx(wxSpinEvent& event);
     void onSpinCamRtSamples(wxSpinEvent& event);
+    void onSpinSplatScale(wxSpinDoubleEvent& event);
 
     void onCheckCamFreeOrbit(wxCommandEvent& event);
 

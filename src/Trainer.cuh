@@ -55,7 +55,7 @@ public:
 
     ~Trainer();
 
-    void render(uint32_t* frameBuffer, int sizeX, int sizeY, const Camera& camera);
+    void render(uint32_t* frameBuffer, int sizeX, int sizeY, float splatScale, const Camera& camera);
 
     void captureTruths(const Project& project, RtxHost& rtx);
 

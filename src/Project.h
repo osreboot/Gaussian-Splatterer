@@ -7,7 +7,7 @@ class Project {
 
 public:
     std::string pathModel;
-    std::string pathTexture;
+    std::string pathTextureDiffuse;
 
     struct CameraSphere {
         int count = 16;
@@ -27,12 +27,15 @@ public:
     float lrOpacity = 0.0001f;
     float lrRotation = 0.000025f;
 
-    // TODO max scale
-    // TODO cull scale
-    // TODO clone/split margin
-    // TODO split location offset
-    // TODO clone location gradient multiplier
-    // TODO cull opacity
+    float paramScaleMax = 0.3f;
+
+    float paramCullOpacity = 0.005f;
+    float paramCullSize = 0.0001f;
+    float paramSplitVariance = 2.0f;
+    float paramSplitSize = 0.005f;
+    float paramSplitDistance = 1.5f;
+    float paramSplitScale = 0.5f;
+    float paramCloneDistance = 2.0f;
 
     int iterations = 0;
     int intervalCapture = 50;
@@ -40,6 +43,7 @@ public:
 
     float previewTimer = 0.0f;
     int previewRtSamples = 50;
+    float previewSplatScale = 1.0f;
 
     bool previewTruth = false;
     int previewTruthIndex = 0;
@@ -55,11 +59,12 @@ public:
     int renderResY = 2048;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Project,
-                                                pathModel, pathTexture,
+                                                pathModel, pathTextureDiffuse,
                                                 sphere1, sphere2, rtSamples,
                                                 lrLocation, lrSh, lrScale, lrOpacity, lrRotation,
+                                                paramScaleMax, paramCullOpacity, paramCullSize, paramSplitVariance, paramSplitSize, paramSplitDistance, paramSplitScale, paramCloneDistance,
                                                 iterations, intervalCapture, intervalDensify,
-                                                previewTimer, previewRtSamples, previewTruth, previewTruthIndex,
+                                                previewTimer, previewRtSamples, previewSplatScale, previewTruth, previewTruthIndex,
                                                 previewFreeOrbit, previewFreeOrbitSpeed, previewFreeDistance, previewFreeFovDeg, previewFreeRotX, previewFreeRotY,
                                                 renderResX, renderResY);
 
