@@ -34,7 +34,7 @@ public:
     float paramSplitVariance = 2.0f;
     float paramSplitSize = 0.005f;
     float paramSplitDistance = 1.5f;
-    float paramSplitScale = 0.5f;
+    float paramSplitScale = 0.8f;
     float paramCloneDistance = 2.0f;
 
     int iterations = 0;
