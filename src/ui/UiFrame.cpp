@@ -9,6 +9,7 @@
 #include "UiPanelTools.h"
 #include "dialog/UiDialogAbout.h"
 
+#include "Config.h"
 #include "Project.h"
 #include "ModelSplatsDevice.h"
 #include "ModelSplatsHost.h"
@@ -95,11 +96,12 @@ UiFrame::~UiFrame() {
 void UiFrame::initProject() {
     delete project;
     project = new Project();
+    project->sphere2.count = 0;
     project->sphere2.fovDeg = 30.0f;
 }
 
 void UiFrame::initFieldGrid() {
-    ModelSplatsHost modelHost(1000000, 1, 4);
+    ModelSplatsHost modelHost(SPLATS_LIMIT, 1, 4);
 
     static const float dim = 4.0f;
     static const float step = 0.5f;
@@ -122,7 +124,7 @@ void UiFrame::initFieldGrid() {
 }
 
 void UiFrame::initFieldMono() {
-    ModelSplatsHost modelHost(1000000, 1, 4);
+    ModelSplatsHost modelHost(SPLATS_LIMIT, 1, 4);
 
     std::vector<float> shs;
     for(int i = 0; i < 3 * modelHost.shCoeffs; i++) shs.push_back(0.0f);
@@ -189,7 +191,7 @@ void UiFrame::initFieldModel() {
         }
     }
 
-    ModelSplatsHost modelHost(1000000, 1, 4);
+    ModelSplatsHost modelHost(SPLATS_LIMIT, 1, 4);
 
     for(owl::vec3i triangle : triangles) {
         glm::vec3 v0(vertices[triangle.x].x, vertices[triangle.x].y, vertices[triangle.x].z);

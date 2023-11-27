@@ -420,12 +420,11 @@ void Trainer::train(Project& project, bool densify) {
 
         std::unordered_set<int> toSplit, toClone, toRemove;
         for(int i = 0; i < modelHost.count; i++) {
-            if (modelHost.opacities[i] <= project.paramCullOpacity ||
-                glm::length(glm::vec3(modelHost.scales[i * 3], modelHost.scales[i * 3 + 1], modelHost.scales[i * 3 + 2])) < project.paramCullSize) {
+            float sizeMagnitude = glm::length(glm::vec3(modelHost.scales[i * 3], modelHost.scales[i * 3 + 1], modelHost.scales[i * 3 + 2]));
+            if (modelHost.opacities[i] <= project.paramCullOpacity || sizeMagnitude < project.paramCullSize) {
                 toRemove.insert(i);
-            } else if (varLocations[i] > project.paramSplitVariance) {
-                if (glm::length(glm::vec3(modelHost.scales[i * 3], modelHost.scales[i * 3 + 1], modelHost.scales[i * 3 + 2])) > project.paramSplitSize) toSplit.insert(i);
-                else toClone.insert(i);
+            } else if (varLocations[i] - glm::length(glm::vec3(gradLocations[i * 3], gradLocations[i * 3 + 1], gradLocations[i * 3 + 2])) > project.paramDensifyVariance) {
+                if (sizeMagnitude > project.paramSplitSize) toSplit.insert(i); else toClone.insert(i);
             }
         }
 

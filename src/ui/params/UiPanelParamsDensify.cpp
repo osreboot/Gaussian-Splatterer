@@ -30,14 +30,24 @@ UiPanelParamsDensify::UiPanelParamsDensify(wxWindow* parent) : wxPanel(parent) {
     sizer->Add(spinParamCullSize, wxSizerFlags().Border(wxDOWN | wxLEFT | wxRIGHT));
 
     sizer->Add(new wxStaticText(this, wxID_ANY, "Densify Variance Trigger"), wxSizerFlags().Border(wxUP | wxLEFT | wxRIGHT));
-    spinParamSplitVariance = new wxSpinCtrlDouble(this, P_SPLIT_VARIANCE);
-    spinParamSplitVariance->SetToolTip("Splats with location gradient variance (average of all location gradient magnitudes) "
+    spinParamDensifyVariance = new wxSpinCtrlDouble(this, P_DENSIFY_VARIANCE);
+    spinParamDensifyVariance->SetToolTip("Splats with location gradient variance (average of all location gradient magnitudes) "
                                        "greater than this value will be cloned or split. Applied on densify iterations.");
-    spinParamSplitVariance->SetRange(0.0f, 100000.0f);
-    spinParamSplitVariance->SetDigits(6);
-    spinParamSplitVariance->SetIncrement(0.0001);
-    spinParamSplitVariance->SetMinSize({96, -1});
-    sizer->Add(spinParamSplitVariance, wxSizerFlags().Border(wxDOWN | wxLEFT | wxRIGHT));
+    spinParamDensifyVariance->SetRange(0.0f, 100000.0f);
+    spinParamDensifyVariance->SetDigits(6);
+    spinParamDensifyVariance->SetIncrement(0.0001);
+    spinParamDensifyVariance->SetMinSize({96, -1});
+    sizer->Add(spinParamDensifyVariance, wxSizerFlags().Border(wxDOWN | wxLEFT | wxRIGHT));
+
+    /*
+    sizer->Add(new wxStaticText(this, wxID_ANY, "Densify Size Trigger"), wxSizerFlags().Border(wxUP | wxLEFT | wxRIGHT));
+    spinParamDensifySize = new wxSpinCtrlDouble(this, P_DENSIFY_SIZE);
+    spinParamDensifySize->SetToolTip("Splats with total scale vector length greater than this value will be split. Applied on densify iterations.");
+    spinParamDensifySize->SetRange(0.0f, 100000.0f);
+    spinParamDensifySize->SetDigits(6);
+    spinParamDensifySize->SetIncrement(0.0001);
+    spinParamDensifySize->SetMinSize({96, -1});
+    sizer->Add(spinParamDensifySize, wxSizerFlags().Border(wxDOWN | wxLEFT | wxRIGHT));*/
 
     sizer->Add(new wxStaticText(this, wxID_ANY, "Clone/Split Size Margin"), wxSizerFlags().Border(wxUP | wxLEFT | wxRIGHT));
     spinParamSplitSize = new wxSpinCtrlDouble(this, P_SPLIT_SIZE);
@@ -87,7 +97,8 @@ UiPanelParamsDensify::UiPanelParamsDensify(wxWindow* parent) : wxPanel(parent) {
 void UiPanelParamsDensify::refreshProject() {
     spinParamCullOpacity->SetValue(getProject().paramCullOpacity);
     spinParamCullSize->SetValue(getProject().paramCullSize);
-    spinParamSplitVariance->SetValue(getProject().paramSplitVariance);
+    spinParamDensifyVariance->SetValue(getProject().paramDensifyVariance);
+    //spinParamDensifySize->SetValue(getProject().paramDensifySize);
     spinParamSplitSize->SetValue(getProject().paramSplitSize);
     spinParamSplitDistance->SetValue(getProject().paramSplitDistance);
     spinParamSplitScale->SetValue(getProject().paramSplitScale);
@@ -98,7 +109,8 @@ void UiPanelParamsDensify::onSpinParameter(wxSpinDoubleEvent& event) {
     switch(event.GetId()) {
         case ParamIds::P_CULL_OPACITY: getProject().paramCullOpacity = (float)event.GetValue(); break;
         case ParamIds::P_CULL_SIZE: getProject().paramCullSize = (float)event.GetValue(); break;
-        case ParamIds::P_SPLIT_VARIANCE: getProject().paramSplitVariance = (float)event.GetValue(); break;
+        case ParamIds::P_DENSIFY_VARIANCE: getProject().paramDensifyVariance = (float)event.GetValue(); break;
+        //case ParamIds::P_DENSIFY_SIZE: getProject().paramDensifySize = (float)event.GetValue(); break;
         case ParamIds::P_SPLIT_SIZE: getProject().paramSplitSize = (float)event.GetValue(); break;
         case ParamIds::P_SPLIT_DISTANCE: getProject().paramSplitDistance = (float)event.GetValue(); break;
         case ParamIds::P_SPLIT_SCALE: getProject().paramSplitScale = (float)event.GetValue(); break;

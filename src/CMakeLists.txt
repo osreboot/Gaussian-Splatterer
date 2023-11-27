@@ -10,7 +10,6 @@ target_sources(${PROJECT_NAME} PRIVATE
         ModelSplatsHost.cpp
         ModelSplatsHost.h
         OpenGLIncludes.h
-        Project.cpp
         Project.h
         StbImpl.cpp
         Trainer.cu

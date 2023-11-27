@@ -253,7 +253,8 @@ void UiPanelToolsView::onButtonRenderSplats(wxCommandEvent& event) {
     uint32_t* frameBuffer;
     cudaMallocManaged(&frameBuffer, getProject().renderResX * getProject().renderResY * sizeof(uint32_t));
 
-    getFrame().trainer->render(frameBuffer, getProject().renderResX, getProject().renderResY, 1.0f, Camera::getPreviewCamera(getProject()));
+    getFrame().trainer->render(frameBuffer, getProject().renderResX, getProject().renderResY,
+                               getProject().previewSplatScale, Camera::getPreviewCamera(getProject()));
 
     stbi_flip_vertically_on_write(true);
     stbi_write_png(dialog.GetPath().ToStdString().c_str(), getProject().renderResX, getProject().renderResY, 4,

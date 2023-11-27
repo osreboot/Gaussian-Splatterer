@@ -16,7 +16,8 @@ private:
 
     wxSpinCtrlDouble* spinParamCullOpacity;
     wxSpinCtrlDouble* spinParamCullSize;
-    wxSpinCtrlDouble* spinParamSplitVariance;
+    wxSpinCtrlDouble* spinParamDensifyVariance;
+    //wxSpinCtrlDouble* spinParamDensifySize;
     wxSpinCtrlDouble* spinParamSplitSize;
     wxSpinCtrlDouble* spinParamSplitDistance;
     wxSpinCtrlDouble* spinParamSplitScale;
@@ -25,7 +26,8 @@ private:
     enum ParamIds {
         P_CULL_OPACITY,
         P_CULL_SIZE,
-        P_SPLIT_VARIANCE,
+        P_DENSIFY_VARIANCE,
+        //P_DENSIFY_SIZE,
         P_SPLIT_SIZE,
         P_SPLIT_DISTANCE,
         P_SPLIT_SCALE,

@@ -2,10 +2,10 @@
 
 FboRenderer::FboRenderer(int width, int height) : width(width), height(height) {
     OWL_CUDA_CHECK(cudaMallocManaged(&frameBuffer, width * height * sizeof(uint32_t)));
-    glGenTextures(1, &textureFrameBuffer);
-    glBindTexture(GL_TEXTURE_2D, textureFrameBuffer);
+    glGenTextures(1, &textureGL);
+    glBindTexture(GL_TEXTURE_2D, textureGL);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-    OWL_CUDA_CHECK(cudaGraphicsGLRegisterImage(&textureCuda, textureFrameBuffer, GL_TEXTURE_2D, 0));
+    OWL_CUDA_CHECK(cudaGraphicsGLRegisterImage(&textureCuda, textureGL, GL_TEXTURE_2D, 0));
 }
 
 void FboRenderer::render(int viewportWidth, int viewportHeight) {
@@ -24,7 +24,7 @@ void FboRenderer::render(int viewportWidth, int viewportHeight) {
     glLoadIdentity();
 
     glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, textureFrameBuffer);
+    glBindTexture(GL_TEXTURE_2D, textureGL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 

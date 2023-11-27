@@ -36,6 +36,7 @@ std::vector<Camera> Camera::getCameras(const Project& project) {
 
     static const glm::vec3 target = {0.0f, 0.0f, 0.0f};
 
+    // Rotation matrix for the first camera sphere's rotation offset
     glm::mat4 rot1 = (glm::mat4)glm::angleAxis(glm::radians(project.sphere1.rotX), glm::vec3(0.0f, 1.0f, 0.0f)) *
             (glm::mat4)glm::angleAxis(glm::radians(project.sphere1.rotY), glm::vec3(1.0f, 0.0f, 0.0f));
 
@@ -44,6 +45,7 @@ std::vector<Camera> Camera::getCameras(const Project& project) {
         out.emplace_back(glm::vec3(loc4.x / loc4.w, loc4.y / loc4.w, loc4.z / loc4.w), target, project.sphere1.fovDeg);
     }
 
+    // Rotation matrix for the second camera sphere's rotation offset
     glm::mat4 rot2 = (glm::mat4)glm::angleAxis(glm::radians(project.sphere2.rotX), glm::vec3(0.0f, 1.0f, 0.0f)) *
             (glm::mat4)glm::angleAxis(glm::radians(project.sphere2.rotY), glm::vec3(1.0f, 0.0f, 0.0f));
 
@@ -59,8 +61,10 @@ Camera Camera::getPreviewCamera(const Project& project) {
     static const glm::vec3 target = {0.0f, 0.0f, 0.0f};
 
     if(project.previewTruth) {
+        // Preview camera is showing one of the truth views
         return getCameras(project).at(project.previewTruthIndex);
     } else {
+        // Preview camera is in free mode, so apply custom rotation, distance, and FOV
         float degRotOrbit = project.previewFreeOrbit ? project.previewTimer * project.previewFreeOrbitSpeed : 0.0f;
         glm::mat4 rot = (glm::mat4)glm::angleAxis(glm::radians(project.previewFreeRotY) + degRotOrbit, glm::vec3(0.0f, 1.0f, 0.0f)) *
                 (glm::mat4)glm::angleAxis(glm::radians(project.previewFreeRotX), glm::vec3(1.0f, 0.0f, 0.0f));
