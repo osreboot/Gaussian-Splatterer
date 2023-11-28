@@ -76,7 +76,7 @@ Building *Gaussian-Splatterer* requires [CUDA Toolkit](https://developer.nvidia.
 This tool is based on Gaussian Splatting, a novel computer graphics modeling/rendering approach developed by Bernhard Kerbl, Georgios Kopanas, Thomas Leimkühler, and George Drettakis. You can find their research paper and more [here](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/).
 
 This tool also depends on (and wouldn't be possible without) the following projects:
-- [OptiX Wrapper Library](https://github.com/owl-project/owl) for powering the truth ray-tracer.
-- [wxWidgets](https://github.com/wxWidgets/wxWidgets) for creating the interface.
-- [JSON for Modern C++](https://github.com/nlohmann/json) for serializing project settings.
-- [stb](https://github.com/nothings/stb) for saving screenshots.
+- [OptiX Wrapper Library](https://github.com/owl-project/owl) powers the truth ray-tracer.
+- [wxWidgets](https://github.com/wxWidgets/wxWidgets) used to build the interface.
+- [JSON for Modern C++](https://github.com/nlohmann/json) serializes project settings.
+- [stb](https://github.com/nothings/stb) used to save screenshots.
