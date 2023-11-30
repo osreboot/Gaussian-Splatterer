@@ -21,7 +21,7 @@ private:
     wxBoxSizer* sizer;
     wxBoxSizer* sizerViews;
 
-    float autoTrainingBudget = 0.0f;
+    float autoTrainingBudget = 0.0f; // Number of allowed training steps per second
 
 public:
     Project* project = nullptr;
@@ -47,14 +47,14 @@ public:
     ~UiFrame() override;
 
 private:
-    void initProject();
-    void initFieldGrid();
-    void initFieldMono();
-    void initFieldModel();
+    void initProject(); // Reset to a new project
+    void initFieldGrid(); // Initialize splats with a scene-sized grid
+    void initFieldMono(); // Initialize splats with a single giant splat
+    void initFieldModel(); // Initialize splats with one splat per model triangle
 
     void update();
 
-    void refreshProject();
+    void refreshProject(); // Called when the project data gets changed, update all text fields & spinners
 
     void saveSettings(const std::string& path) const;
     void saveSplats(const std::string& path) const;

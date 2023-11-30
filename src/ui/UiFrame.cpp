@@ -19,7 +19,7 @@
 using namespace std;
 
 UiFrame::UiFrame() :
-        wxFrame(nullptr, wxID_ANY, "Gaussian Splatterer") {
+        wxFrame(nullptr, wxID_ANY, format("Gaussian Splatterer - v{}", VERSION)) {
     panel = new wxPanel(this);
     sizer = new wxBoxSizer(wxVERTICAL);
     panel->SetSizerAndFit(sizer);
@@ -101,7 +101,7 @@ void UiFrame::initProject() {
 }
 
 void UiFrame::initFieldGrid() {
-    ModelSplatsHost modelHost(SPLATS_LIMIT, 1, 4);
+    ModelSplatsHost modelHost(SPLATS_LIMIT, SPLATS_SH_DEGREE, SPLATS_SH_COEF);
 
     static const float dim = 4.0f;
     static const float step = 0.5f;
@@ -109,6 +109,7 @@ void UiFrame::initFieldGrid() {
     std::vector<float> shs;
     for(int i = 0; i < 3 * modelHost.shCoeffs; i++) shs.push_back(0.0f);
 
+    // Create a scene-sized grid of splats
     for(float x = -dim; x <= dim; x += step){
         for(float y = -dim; y <= dim; y += step){
             for(float z = -dim; z <= dim; z += step){
@@ -118,20 +119,23 @@ void UiFrame::initFieldGrid() {
         }
     }
 
+    // Send new splats to the GPU for training
     delete trainer->model;
     trainer->model = new ModelSplatsDevice(modelHost);
     project->iterations = 0;
 }
 
 void UiFrame::initFieldMono() {
-    ModelSplatsHost modelHost(SPLATS_LIMIT, 1, 4);
+    ModelSplatsHost modelHost(SPLATS_LIMIT, SPLATS_SH_DEGREE, SPLATS_SH_COEF);
 
     std::vector<float> shs;
     for(int i = 0; i < 3 * modelHost.shCoeffs; i++) shs.push_back(0.0f);
 
+    // Create a single giant splat
     modelHost.pushBack({0.0f, 0.0f, 0.0f}, shs, {0.3f, 0.3f, 0.3f}, 1.0f,
                        glm::angleAxis(0.0f, glm::vec3(0.0f, 1.0f, 0.0f)));
 
+    // Send new splats to the GPU for training
     delete trainer->model;
     trainer->model = new ModelSplatsDevice(modelHost);
     project->iterations = 0;
@@ -144,6 +148,7 @@ void UiFrame::initFieldModel() {
         return;
     }
 
+    // Parse the model OBJ file and accumulate vertices & triangles
     std::vector<owl::vec3f> vertices;
     std::vector<owl::vec3i> triangles;
 
@@ -191,57 +196,67 @@ void UiFrame::initFieldModel() {
         }
     }
 
-    ModelSplatsHost modelHost(SPLATS_LIMIT, 1, 4);
+    ModelSplatsHost modelHost(SPLATS_LIMIT, SPLATS_SH_DEGREE, SPLATS_SH_COEF);
 
+    // Create one splat per triangle, with a scale/rotation that matches the triangle's orientation
     for(owl::vec3i triangle : triangles) {
         glm::vec3 v0(vertices[triangle.x].x, vertices[triangle.x].y, vertices[triangle.x].z);
         glm::vec3 v1(vertices[triangle.y].x, vertices[triangle.y].y, vertices[triangle.y].z);
         glm::vec3 v2(vertices[triangle.z].x, vertices[triangle.z].y, vertices[triangle.z].z);
 
+        // Location is the average of the triangle's vertices
         glm::vec3 location = (v0 + v1 + v2) / 3.0f;
+
+        // Very thin splat, estimate the planar dimensions based on the triangle's edge lengths
         glm::vec3 scale(glm::length(v1 - v0), glm::length(v2 - v0), 0.005f);
         scale *= 0.2f;
 
         std::vector<float> shs;
         for(int i = 0; i < 3 * modelHost.shCoeffs; i++) shs.push_back(0.0f);
 
-        glm::vec3 up = glm::vec3(0.0f, 0.0f, 1.0f);
-        glm::vec3 dir = glm::normalize(glm::cross(v1 - v0, v2 - v0));
-
-        glm::vec3 axis = glm::cross(up, dir);
-        float angle = glm::acos(glm::dot(up, dir));
+        // Calculate axis/angle parameters so we can rotate the splat to face the source triangle's normal
+        glm::vec3 splatUp = glm::vec3(0.0f, 0.0f, 1.0f);
+        glm::vec3 triNormal = glm::normalize(glm::cross(v1 - v0, v2 - v0));
+        glm::vec3 axis = glm::cross(splatUp, triNormal);
+        float angle = glm::acos(glm::dot(splatUp, triNormal));
 
         modelHost.pushBack(location, shs, scale, 1.0f, glm::angleAxis(angle, axis));
     }
 
+    // Send new splats to the GPU for training
     delete trainer->model;
     trainer->model = new ModelSplatsDevice(modelHost);
     project->iterations = 0;
 }
 
 void UiFrame::update() {
+    // Calculate how much time has passed since the last update
     timeNow = chrono::high_resolution_clock::now();
     float delta = (float)chrono::duration_cast<chrono::nanoseconds>(timeNow - timeLastUpdate).count() / 1000000000.0f;
-    //delta = min(delta, 0.2f);
     timeLastUpdate = timeNow;
 
     project->previewTimer += delta;
 
     if(autoTraining) {
-        autoTrainingBudget = min(1.0f, autoTrainingBudget + delta * 100.0f);
+        // Advance the training capacity if we have room, but do not exceed one potential iteration (so as not to
+        // accumulate over time)
+        autoTrainingBudget = min(1.0f, autoTrainingBudget + delta * AUTO_TRAIN_BUDGET);
 
-        if(autoTrainingBudget >= 1.0f) {
+        if(autoTrainingBudget >= 1.0f) { // Run a training iteration
             autoTrainingBudget = 0.0f;
 
+            // Check if this is a special iteration
             const bool capture = project->intervalCapture > 0 && project->iterations % project->intervalCapture == 0;
             const bool densify = project->intervalDensify > 0 && project->iterations % project->intervalDensify == 0;
 
-            if(capture) {
+            if(capture) { // Randomize camera sphere rotations & collect new truth data
                 wxCommandEvent eventFake = wxCommandEvent(wxEVT_NULL, 0);
                 panelTools->panelTruth->onButtonRandomRotate(eventFake);
                 panelTools->panelTruth->onButtonCapture(eventFake);
             }
+
             trainer->train(*project, densify);
+
             panelOutput->refreshText();
             panelTools->panelTrain->refreshText();
         }
@@ -272,11 +287,13 @@ void UiFrame::saveSettings(const std::string& path) const {
 
 void UiFrame::saveSplats(const std::string& path) const {
     wxProgressDialog dialog("Saving Gaussian Splats", "Writing splats to \"" + path + "\"...", trainer->model->count + 1000, panel, wxPD_AUTO_HIDE);
-    ModelSplatsHost model(*trainer->model);
 
+    // Initializing the model takes time, so count this as (the equivalent of) 1,000 line reads
+    ModelSplatsHost model(*trainer->model);
     int progress = 1000;
     dialog.Update(progress);
 
+    // Write splats to the custom Gaussian OBJ (.gobj) file format
     std::ofstream file(path);
     for (int i = 0; i < model.count; i++) {
         file << "v " << model.locations[i * 3] << " " << model.locations[i * 3 + 1] << " " << model.locations[i * 3 + 2] << "\n";
@@ -323,6 +340,7 @@ void UiFrame::loadSplats(const std::string& path) {
 
     int progress = 0;
 
+    // Read splats from the custom Gaussian OBJ (.gobj) file format
     std::optional<int> shCoeffs = nullopt;
 
     std::vector<float> locations;
@@ -351,8 +369,10 @@ void UiFrame::loadSplats(const std::string& path) {
                 shs.push_back(x);
                 shCoeffsCount++;
             }
+
+            // All spherical harmonic properties (splat color) need to have the same dimension throughout the model
             if (!shCoeffs) shCoeffs = shCoeffsCount;
-            else assert(shCoeffs == shCoeffsCount);
+            else if (shCoeffs != shCoeffsCount) throw std::runtime_error("Inconsistent SH degree!");
         } else if (prefix == "s") {
             for (int f = 0; f < 3; f++) {
                 float x;
@@ -374,11 +394,12 @@ void UiFrame::loadSplats(const std::string& path) {
         dialog.Update(++progress);
     }
 
+    // Initializing the model takes time, so count this as (the equivalent of) 1,000 line reads
     ModelSplatsHost modelHost(locations, shs, scales, opacities, rotations);
-
     progress += 1000;
     dialog.Update(progress);
 
+    // Send new splats to the GPU for training
     delete trainer->model;
     trainer->model = new ModelSplatsDevice(modelHost);
 }

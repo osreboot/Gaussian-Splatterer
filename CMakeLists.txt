@@ -3,8 +3,7 @@ project(GaussianSplatterer LANGUAGES C CXX CUDA)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CUDA_STANDARD 14)
-
-add_definitions(-DNDEBUG)
+set(CMAKE_CUDA_ARCHITECTURES 75)
 
 add_executable(${PROJECT_NAME} WIN32 ${SOURCES})
 

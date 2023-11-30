@@ -36,11 +36,10 @@ ModelSplatsHost::ModelSplatsHost(const std::vector<float>& locationsArg, const s
     shDegree = (((int)shsArg.size() / (3 * count)) - 1) / 3;
     shCoeffs = ((int)shsArg.size() / (3 * count));
 
-    assert(locationsArg.size() == count * 3 &&
-        shsArg.size() == count * 3 * shCoeffs &&
-        scalesArg.size() == count * 3 &&
-        opacitiesArg.size() == count &&
-        rotationsArg.size() == count * 4);
+    if (locationsArg.size() != count * 3 || shsArg.size() != count * 3 * shCoeffs || scalesArg.size() != count * 3 ||
+        opacitiesArg.size() != count || rotationsArg.size() != count * 4) {
+        throw std::runtime_error("Inconsistent feature dimensions supplied when creating a host model!");
+    }
 
     locations = new float[capacity * 3];
     shs = new float[capacity * 3 * shCoeffs];
@@ -64,7 +63,7 @@ ModelSplatsHost::~ModelSplatsHost() {
 }
 
 void ModelSplatsHost::pushBack(glm::vec3 location, std::vector<float> sh, glm::vec3 scale, float opacity, glm::quat rotation) {
-    assert(count < capacity);
+    if (count >= capacity) throw std::runtime_error("Model ran out of capacity!");
 
     memcpy(&locations[count * 3], &location, 3 * sizeof(float));
     for (int i  = 0; i < shCoeffs * 3; i++) {
@@ -78,7 +77,9 @@ void ModelSplatsHost::pushBack(glm::vec3 location, std::vector<float> sh, glm::v
 }
 
 void ModelSplatsHost::copy(int indexTo, int indexFrom) {
-    assert(indexTo >= 0 && indexTo < count && indexFrom > 0 && indexFrom < count);
+    if (indexTo < 0 || indexTo >= count || indexFrom < 0 || indexFrom >= count) {
+        throw std::runtime_error("Can't copy splat in model, incorrect bounds and/or no capacity!");
+    }
 
     memcpy(&locations[indexTo * 3], &locations[indexFrom * 3], 3 * sizeof(float));
     for (int i = 0; i < shCoeffs * 3; i++) {
