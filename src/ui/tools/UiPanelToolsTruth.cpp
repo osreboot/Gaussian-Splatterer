@@ -2,21 +2,18 @@
 
 #include "ui/UiFrame.h"
 #include "ui/UiPanelViewInput.h"
-#include "ui/UiPanelTools.h"
+#include "ui/tools/UiPanelToolsView.h"
+#include "ui/tools/UiPanelToolsTrain.h"
 #include "Camera.h"
 #include "Project.h"
 #include "Trainer.cuh"
 
-UiFrame& UiPanelToolsTruth::getFrame() const {
-    return *dynamic_cast<UiFrame*>(GetParent()->GetParent()->GetParent());
-}
-
 Project& UiPanelToolsTruth::getProject() const {
-    return *getFrame().project;
+    return *frame.project;
 }
 
-UiPanelToolsTruth::UiPanelToolsTruth(wxWindow* parent) : wxPanel(parent) {
-    sizer = new wxStaticBoxSizer(wxHORIZONTAL, this, "2. Build Truth Data");
+UiPanelToolsTruth::UiPanelToolsTruth(wxWindow* parent, UiFrame& frame) : wxPanel(parent), frame(frame) {
+    wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
 
 
 
@@ -165,7 +162,7 @@ void UiPanelToolsTruth::onSpin(wxSpinEvent& event) {
         case CameraSphereIds::S1_COUNT: getProject().sphere1.count = event.GetValue(); break;
         case CameraSphereIds::S2_COUNT: getProject().sphere2.count = event.GetValue(); break;
     }
-    getFrame().panelTools->panelView->refreshCameraCount();
+    frame.panelToolsView->refreshCameraCount();
 }
 
 void UiPanelToolsTruth::onSpinDouble(wxSpinDoubleEvent& event) {
@@ -187,9 +184,9 @@ void UiPanelToolsTruth::onSpinRtSamples(wxSpinEvent& event) {
 }
 
 void UiPanelToolsTruth::onButtonCapture(wxCommandEvent& event) {
-    getFrame().trainer->captureTruths(getProject(), *getFrame().rtx);
-    getFrame().panelInput->refreshText();
-    if(!getFrame().autoTraining) getFrame().panelTools->panelTrain->Enable();
+    frame.trainer->captureTruths(getProject(), *frame.rtx);
+    frame.panelInput->refreshText();
+    if(!frame.autoTraining) frame.panelToolsTrain->Enable();
 }
 
 void UiPanelToolsTruth::onButtonRandomRotate(wxCommandEvent& event) {

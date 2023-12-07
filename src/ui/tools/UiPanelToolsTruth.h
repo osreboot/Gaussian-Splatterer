@@ -9,10 +9,8 @@
 class UiPanelToolsTruth : public wxPanel {
 
 private:
-    UiFrame& getFrame() const;
+    UiFrame& frame;
     Project& getProject() const;
-
-    wxStaticBoxSizer* sizer;
 
     wxStaticBoxSizer* sizerSphere1;
     wxStaticBoxSizer* sizerSphere2;
@@ -48,7 +46,7 @@ private:
     };
 
 public:
-    UiPanelToolsTruth(wxWindow* parent);
+    UiPanelToolsTruth(wxWindow* parent, UiFrame& frame);
 
     void refreshProject();
 

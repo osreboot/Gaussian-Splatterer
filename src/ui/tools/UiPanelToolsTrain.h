@@ -9,10 +9,8 @@
 class UiPanelToolsTrain : public wxPanel{
 
 private:
-    UiFrame& getFrame() const;
+    UiFrame& frame;
     Project& getProject() const;
-
-    wxStaticBoxSizer* sizer;
 
     wxButton* buttonAutoStart;
     wxButton* buttonAutoStop;
@@ -44,7 +42,7 @@ private:
     };
 
 public:
-    UiPanelToolsTrain(wxWindow* parent);
+    UiPanelToolsTrain(wxWindow* parent, UiFrame& frame);
 
     void refreshProject();
     void refreshText();

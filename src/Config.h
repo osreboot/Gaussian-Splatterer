@@ -4,7 +4,7 @@
 #define M_PI 3.1415926535897932384626433832795
 #endif
 
-#define VERSION "1.0.0"
+#define VERSION "1.1.0"
 
 // Number of allowed training steps per second
 #define AUTO_TRAIN_BUDGET 100.0f

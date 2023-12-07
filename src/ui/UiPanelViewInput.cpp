@@ -6,21 +6,14 @@
 #include "rtx/RtxHost.h"
 #include "Trainer.cuh"
 
-UiFrame& UiPanelViewInput::getFrame() const {
-    return *dynamic_cast<UiFrame*>(GetParent()->GetParent());;
-}
-
 Project& UiPanelViewInput::getProject() const {
-    return *getFrame().project;
+    return *frame.project;
 }
 
-UiPanelViewInput::UiPanelViewInput(wxWindow *parent) : wxPanel(parent) {
+UiPanelViewInput::UiPanelViewInput(wxWindow *parent, UiFrame& frame) : wxPanel(parent), frame(frame) {
     sizer = new wxBoxSizer(wxVERTICAL);
 
-    sizer->Add(new wxStaticText(this, wxID_ANY, "RTX Ray Tracer View"));
-
     canvas = new wxGLCanvas(this);
-    canvas->SetMinSize({256, 256});
     context = new wxGLContext(canvas);
     canvas->SetCurrent(*context);
     sizer->Add(canvas, wxSizerFlags().Shaped().Expand());
@@ -28,7 +21,7 @@ UiPanelViewInput::UiPanelViewInput(wxWindow *parent) : wxPanel(parent) {
     renderer = new FboRenderer(RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y);
 
     textFrames = new wxStaticText(this, wxID_ANY, "No captured frames");
-    sizer->Add(textFrames);
+    sizer->Add(textFrames, wxSizerFlags().Expand());
 
     SetSizerAndFit(sizer);
 }
@@ -43,13 +36,13 @@ void UiPanelViewInput::refreshProject() {
 }
 
 void UiPanelViewInput::refreshText() {
-    textFrames->SetLabel(std::to_string(getFrame().trainer->truthFrameBuffersW.size()) + " saved truth frames (x2, both black and white background variants of each)");
+    textFrames->SetLabel(std::to_string(frame.trainer->truthFrameBuffersW.size()) + " saved truth frames (x2, both black and white background variants of each)");
 }
 
 void UiPanelViewInput::render() {
     canvas->SetCurrent(*context);
 
-    getFrame().rtx->render(renderer->frameBuffer, {RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y},
+    frame.rtx->render(renderer->frameBuffer, {RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y},
                            Camera::getPreviewCamera(getProject()), {0.0f, 0.0f, 0.0f}, getProject().previewRtSamples,
                            getProject().previewTruth ? std::vector<Camera>() : Camera::getCameras(getProject()));
 

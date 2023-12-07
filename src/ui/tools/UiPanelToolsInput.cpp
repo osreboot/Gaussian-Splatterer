@@ -5,22 +5,17 @@
 
 #include "ui/UiFrame.h"
 #include "ui/UiPanelViewInput.h"
-#include "ui/UiPanelTools.h"
 #include "Camera.h"
 #include "Project.h"
 #include "Trainer.cuh"
 #include "rtx/RtxHost.h"
 
-UiFrame& UiPanelToolsInput::getFrame() const {
-    return *dynamic_cast<UiFrame*>(GetParent()->GetParent()->GetParent());
-}
-
 Project& UiPanelToolsInput::getProject() const {
-    return *getFrame().project;
+    return *frame.project;
 }
 
-UiPanelToolsInput::UiPanelToolsInput(wxWindow* parent) : wxPanel(parent) {
-    sizer = new wxStaticBoxSizer(wxVERTICAL, this, "1. Input Model Data");
+UiPanelToolsInput::UiPanelToolsInput(wxWindow* parent, UiFrame& frame) : wxPanel(parent), frame(frame) {
+    wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 
     sizer->Add(new wxStaticText(this, wxID_ANY, "Model"), wxSizerFlags().Expand().Border(wxUP | wxLEFT | wxRIGHT));
     fileModel = new wxFilePickerCtrl(this, wxID_ANY, "", "Load Model", "OBJ Files (*.obj)|*.obj",
@@ -41,8 +36,8 @@ UiPanelToolsInput::UiPanelToolsInput(wxWindow* parent) : wxPanel(parent) {
 void UiPanelToolsInput::refreshProject() {
     fileModel->SetPath(getProject().pathModel);
     fileTextureDiffuse->SetPath(getProject().pathTextureDiffuse);
-    getFrame().rtx->loadModel(getProject().pathModel, [](){});
-    getFrame().rtx->loadTextureDiffuse(getProject().pathTextureDiffuse);
+    frame.rtx->loadModel(getProject().pathModel, [](){});
+    frame.rtx->loadTextureDiffuse(getProject().pathTextureDiffuse);
 }
 
 void UiPanelToolsInput::onFileModel(wxFileDirPickerEvent& event) {
@@ -51,15 +46,15 @@ void UiPanelToolsInput::onFileModel(wxFileDirPickerEvent& event) {
     int linesCount = (int)std::count(std::istreambuf_iterator<char>(fileLines), std::istreambuf_iterator<char>(), '\n');
 
     wxProgressDialog dialog("Loading Model", "Loading model geometry from \"" + event.GetPath().ToStdString() + "\"...", linesCount,
-                            getFrame().panelInput, wxPD_AUTO_HIDE);
+                            frame.panelInput, wxPD_AUTO_HIDE);
 
     int progress = 0;
 
     getProject().pathModel = event.GetPath();
-    getFrame().rtx->loadModel(getProject().pathModel, [&](){ dialog.Update(++progress); });
+    frame.rtx->loadModel(getProject().pathModel, [&](){ dialog.Update(++progress); });
 }
 
 void UiPanelToolsInput::onFileTextureDiffuse(wxFileDirPickerEvent& event) {
     getProject().pathTextureDiffuse = event.GetPath();
-    getFrame().rtx->loadTextureDiffuse(getProject().pathTextureDiffuse);
+    frame.rtx->loadTextureDiffuse(getProject().pathTextureDiffuse);
 }

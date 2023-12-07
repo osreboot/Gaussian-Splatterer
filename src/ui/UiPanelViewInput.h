@@ -7,7 +7,7 @@
 class UiPanelViewInput : public wxPanel {
 
 private:
-    UiFrame& getFrame() const;
+    UiFrame& frame;
     Project& getProject() const;
 
     wxBoxSizer* sizer;
@@ -20,7 +20,7 @@ private:
 public:
     wxGLContext* context;
 
-    UiPanelViewInput(wxWindow *parent);
+    UiPanelViewInput(wxWindow *parent, UiFrame& frame);
     ~UiPanelViewInput() override;
 
     void refreshProject();

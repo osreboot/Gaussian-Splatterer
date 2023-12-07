@@ -34,12 +34,8 @@ target_sources(${PROJECT_NAME} PRIVATE
         ui/tools/UiPanelToolsView.h
         ui/UiFrame.cpp
         ui/UiFrame.h
-        ui/UiPanelParams.cpp
-        ui/UiPanelParams.h
         ui/UiPanelViewInput.cpp
         ui/UiPanelViewInput.h
         ui/UiPanelViewOutput.cpp
         ui/UiPanelViewOutput.h
-        ui/UiPanelTools.cpp
-        ui/UiPanelTools.h
         )

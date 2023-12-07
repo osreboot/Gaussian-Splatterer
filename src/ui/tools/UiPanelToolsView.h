@@ -9,10 +9,8 @@
 class UiPanelToolsView : public wxPanel {
 
 private:
-    UiFrame& getFrame() const;
+    UiFrame& frame;
     Project& getProject() const;
-
-    wxStaticBoxSizer* sizer;
 
     wxSpinCtrl* spinCamRtSamples;
     wxSpinCtrlDouble* spinSplatScale;
@@ -42,7 +40,7 @@ private:
     };
 
 public:
-    UiPanelToolsView(wxWindow* parent);
+    UiPanelToolsView(wxWindow* parent, UiFrame& frame);
 
     void refreshProject();
     void refreshCameraCount();

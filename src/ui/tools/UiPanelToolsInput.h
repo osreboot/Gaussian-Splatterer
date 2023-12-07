@@ -9,16 +9,14 @@
 class UiPanelToolsInput : public wxPanel {
 
 private:
-    UiFrame& getFrame() const;
+    UiFrame& frame;
     Project& getProject() const;
-
-    wxStaticBoxSizer* sizer;
 
     wxFilePickerCtrl* fileModel;
     wxFilePickerCtrl* fileTextureDiffuse;
 
 public:
-    UiPanelToolsInput(wxWindow* parent);
+    UiPanelToolsInput(wxWindow* parent, UiFrame& frame);
 
     void refreshProject();
 

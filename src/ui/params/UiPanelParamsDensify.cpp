@@ -1,15 +1,11 @@
 #include "UiPanelParamsDensify.h"
 
-UiFrame& UiPanelParamsDensify::getFrame() const {
-    return *dynamic_cast<UiFrame*>(GetParent()->GetParent()->GetParent());
-}
-
 Project& UiPanelParamsDensify::getProject() const {
-    return *getFrame().project;
+    return *frame.project;
 }
 
-UiPanelParamsDensify::UiPanelParamsDensify(wxWindow* parent) : wxPanel(parent) {
-    sizer = new wxStaticBoxSizer(wxVERTICAL, this, "Densify Parameters");
+UiPanelParamsDensify::UiPanelParamsDensify(wxWindow* parent, UiFrame& frame) : wxPanel(parent), frame(frame) {
+    wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 
     sizer->Add(new wxStaticText(this, wxID_ANY, "Cull Opacity Margin"), wxSizerFlags().Border(wxUP | wxLEFT | wxRIGHT));
     spinParamCullOpacity = new wxSpinCtrlDouble(this, P_CULL_OPACITY);

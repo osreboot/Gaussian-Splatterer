@@ -9,7 +9,7 @@
 class UiPanelParamsLr : public wxPanel{
 
 private:
-    UiFrame& getFrame() const;
+    UiFrame& frame;
     Project& getProject() const;
 
     wxStaticBoxSizer* sizer;
@@ -29,7 +29,7 @@ private:
     };
 
 public:
-    UiPanelParamsLr(wxWindow* parent);
+    UiPanelParamsLr(wxWindow* parent, UiFrame& frame);
 
     void refreshProject();
 

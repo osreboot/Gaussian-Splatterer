@@ -1,6 +1,6 @@
-#include <optix_device.h>
-
 #include "RtxDevice.cuh"
+
+#include <optix_device.h>
 
 using namespace owl;
 
@@ -27,15 +27,13 @@ inline __device__ vec3f tracePath(const RayGenerator& rayGen, Ray& ray, PerRayDa
         // Launch the ray
         traceRay(rayGen.worldHandle, ray, prd);
 
-        /*
-        vec3f colorAccum3 = vec3f(colorAccum.x, colorAccum.y, colorAccum.z) + vec3f(prd.color.x, prd.color.y, prd.color.z) * (1.0f - colorAccum.w);
-        float colorAccumA = 1.0f - (1.0f - colorAccum.w) * (1.0f - prd.color.w);
-        colorAccum = vec4f(colorAccum3, colorAccumA);*/
-
+        // Apply ray color attenuation
         colorAtten *= vec3f(prd.color.x, prd.color.y, prd.color.z);
         if (prd.reflected) hasReflected = true;
 
-        if (i == 0) {
+        // Detect if the ray hit a splat camera indicator orb. This is inefficient and causes some lag, a better
+        // solution would be to use proper hardware acceleration via a custom geometry type.
+        if (i == 0) { // Only check on the first iteration because we don't want the camera orbs to cast light/shadows.
             for (int c = 0; c < rayGen.splatCamerasCount; c++) {
                 if(!prd.shouldTerminate && dot(ray.direction, rayGen.splatCameras[c] - ray.origin) > dot(ray.direction, prd.hitOrigin - ray.origin)) continue;
 
@@ -73,12 +71,13 @@ OPTIX_RAYGEN_PROGRAM(rayGenProgram)() {
         Ray ray;
         ray.origin = rayGen.cameraLocation;
 
+        // Calculate the ray's direction based on the camera matrix
         const vec2f pixelFine = vec2f(pixel) + vec2f(prd.random(), prd.random()) + vec2f(0.5);
         const vec3f viewFarZ = vec3f((pixelFine.x * 2.0 / rayGen.size.x) - 1.0f, (pixelFine.y * 2.0 / rayGen.size.y) - 1.0f, 1.0f);
-        vec4f rayFarZ = vec4f(viewFarZ.x * rayGen.cameraMatrix[0] + viewFarZ.y * rayGen.cameraMatrix[4] + viewFarZ.z * rayGen.cameraMatrix[8] + rayGen.cameraMatrix[12],
-                              viewFarZ.x * rayGen.cameraMatrix[1] + viewFarZ.y * rayGen.cameraMatrix[5] + viewFarZ.z * rayGen.cameraMatrix[9] + rayGen.cameraMatrix[13],
-                              viewFarZ.x * rayGen.cameraMatrix[2] + viewFarZ.y * rayGen.cameraMatrix[6] + viewFarZ.z * rayGen.cameraMatrix[10] + rayGen.cameraMatrix[14],
-                              viewFarZ.x * rayGen.cameraMatrix[3] + viewFarZ.y * rayGen.cameraMatrix[7] + viewFarZ.z * rayGen.cameraMatrix[11] + rayGen.cameraMatrix[15]);
+        const vec4f rayFarZ = vec4f(viewFarZ.x * rayGen.cameraMatrix[0] + viewFarZ.y * rayGen.cameraMatrix[4] + viewFarZ.z * rayGen.cameraMatrix[8] + rayGen.cameraMatrix[12],
+                                    viewFarZ.x * rayGen.cameraMatrix[1] + viewFarZ.y * rayGen.cameraMatrix[5] + viewFarZ.z * rayGen.cameraMatrix[9] + rayGen.cameraMatrix[13],
+                                    viewFarZ.x * rayGen.cameraMatrix[2] + viewFarZ.y * rayGen.cameraMatrix[6] + viewFarZ.z * rayGen.cameraMatrix[10] + rayGen.cameraMatrix[14],
+                                    viewFarZ.x * rayGen.cameraMatrix[3] + viewFarZ.y * rayGen.cameraMatrix[7] + viewFarZ.z * rayGen.cameraMatrix[11] + rayGen.cameraMatrix[15]);
 
         ray.direction = normalize(vec3f(rayFarZ.x / rayFarZ.w, rayFarZ.y / rayFarZ.w, rayFarZ.z / rayFarZ.w) - rayGen.cameraLocation);
 
@@ -109,15 +108,13 @@ OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)() {
     // Fetch data about the collision surface
     const unsigned int indexPrimitive = optixGetPrimitiveIndex();
     const vec3i index = world.triangles[indexPrimitive];
-    const Material material = {false, 0.0f, 0.0f, {1.0f, 1.0f, 1.0f}, 0.0f, 0};
 
     // Calculate the normal of the surface
     const vec3f normalSurface = normalize(cross(world.vertices[index.y] - world.vertices[index.x],
                                                 world.vertices[index.z] - world.vertices[index.x]));
 
-    const vec3f ro = optixGetWorldRayOrigin();
-    const vec3f rd = optixGetWorldRayDirection();
-    const vec3f rdn = normalize(rd);
+    const vec3f rayOrigin = optixGetWorldRayOrigin();
+    const vec3f rayDir = optixGetWorldRayDirection();
 
     vec2f uv = optixGetTriangleBarycentrics();
     vec2f textureCoord = (1.0f - uv.x - uv.y) * world.textureCoords[indexPrimitive * 3] +
@@ -126,38 +123,36 @@ OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)() {
     vec4f colorTexture = vec4f(tex2D<float4>(world.textures[TEXTURE_DIFFUSE], textureCoord.x, 1.0f - textureCoord.y));
 
     // Calculate the position of the collision
-    prd.hitOrigin = ro + optixGetRayTmax() * rd;
+    prd.hitOrigin = rayOrigin + optixGetRayTmax() * rayDir;
 
     if (colorTexture.w > prd.random()) { // Ray collided with the material
         // Calculate reflected direction
-        vec3f directionReflect = rd - 2.0f * dot(rd, normalSurface) * normalSurface;
-        if(prd.random() > material.reflectivity){ // Scattering for lambertians
+        vec3f directionReflect = rayDir - 2.0f * dot(rayDir, normalSurface) * normalSurface;
+        if(prd.random() > MATERIAL_REFLECTIVITY){ // Scattering for lambertians
             directionReflect = normalSurface + randomUnitSphere(prd.random);
         }
 
         // Assign final ray data based on all the above calculations
         prd.bounceDirection = directionReflect;
 
-        // Diffuse material scattering
-        prd.bounceDirection += material.diffuse * randomUnitSphere(prd.random);
-
-        prd.color = material.color * vec3f(colorTexture.x, colorTexture.y, colorTexture.z);
+        prd.color = vec3f(colorTexture.x, colorTexture.y, colorTexture.z);
         prd.reflected = true;
     } else { // Ray passed through the material
-        prd.bounceDirection = rdn;
+        prd.bounceDirection = rayDir;
         prd.color = vec3f(1.0f);
     }
 
-    prd.shouldTerminate = material.fullbright;
+    prd.shouldTerminate = false;
 }
 
 // Ray miss program
 OPTIX_MISS_PROGRAM(miss)() {
     PerRayData& prd = getPRD<PerRayData>();
 
-    prd.shouldTerminate = true;
+    vec3f rayDirNormal = normalize(vec3f(optixGetWorldRayDirection()));
 
-    vec3f rayNormal = normalize(vec3f(optixGetWorldRayDirection()));
-    prd.color = vec3f(min(1.0f, 1.0f + rayNormal.y));
-    //prd.color = vec3f(0.0f, 0.0f, 0.0f);
+    // Generic white/gray sky color function TODO add support for sky sphere textures or similar
+    prd.color = vec3f(min(1.0f, 1.0f + rayDirNormal.y));
+
+    prd.shouldTerminate = true;
 }

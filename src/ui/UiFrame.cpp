@@ -5,8 +5,13 @@
 
 #include "UiPanelViewInput.h"
 #include "UiPanelViewOutput.h"
-#include "UiPanelParams.h"
-#include "UiPanelTools.h"
+#include "params/UiPanelParamsLr.h"
+#include "params/UiPanelParamsDensify.h"
+#include "params/UiPanelParamsOther.h"
+#include "tools/UiPanelToolsInput.h"
+#include "tools/UiPanelToolsTrain.h"
+#include "tools/UiPanelToolsTruth.h"
+#include "tools/UiPanelToolsView.h"
 #include "dialog/UiDialogAbout.h"
 
 #include "Config.h"
@@ -19,10 +24,8 @@
 using namespace std;
 
 UiFrame::UiFrame() :
-        wxFrame(nullptr, wxID_ANY, format("Gaussian Splatterer - v{}", VERSION)) {
-    panel = new wxPanel(this);
-    sizer = new wxBoxSizer(wxVERTICAL);
-    panel->SetSizerAndFit(sizer);
+        wxFrame(nullptr, wxID_ANY, format("Gaussian Splatterer - v{}", VERSION), wxDefaultPosition, {1280, 720}) {
+    auiManager.SetManagedWindow(this);
 
     initProject();
 
@@ -60,33 +63,64 @@ UiFrame::UiFrame() :
     menuFileLoad->Append(FILE_LOAD_SPLATS, "Load Splats");
     menuFileLoad->Append(FILE_LOAD_SETTINGS, "Load Settings");
 
+    menuView = new wxMenu();
+    menuBar->Append(menuView, "View");
+    menuView->Append(VIEW_PERS_DEFAULT, "Default Perspective");
+
     menuAbout = new wxMenu();
     menuBar->Append(menuAbout, "About");
     menuAbout->Append(ABOUT_ABOUT, "About");
 
     menuBar->Bind(wxEVT_COMMAND_TOOL_CLICKED, &UiFrame::onMenuButton, this);
 
-    sizerViews = new wxBoxSizer(wxHORIZONTAL);
-    sizer->Add(sizerViews, wxSizerFlags(1).Expand());
+    panelInput = new UiPanelViewInput(auiManager.GetManagedWindow(), *this);
+    panelOutput = new UiPanelViewOutput(auiManager.GetManagedWindow(), *this, panelInput->context);
 
-    panelInput = new UiPanelViewInput(panel);
-    sizerViews->Add(panelInput, wxSizerFlags(1).Expand().Border());
+    panelParamsLr = new UiPanelParamsLr(auiManager.GetManagedWindow(), *this);
+    panelParamsDensify = new UiPanelParamsDensify(auiManager.GetManagedWindow(), *this);
+    panelParamsOther = new UiPanelParamsOther(auiManager.GetManagedWindow(), *this);
 
-    panelOutput = new UiPanelViewOutput(panel, panelInput->context);
-    sizerViews->Add(panelOutput, wxSizerFlags(1).Expand().Border());
+    panelToolsInput = new UiPanelToolsInput(auiManager.GetManagedWindow(), *this);
+    panelToolsTruth = new UiPanelToolsTruth(auiManager.GetManagedWindow(), *this);
+    panelToolsTrain = new UiPanelToolsTrain(auiManager.GetManagedWindow(), *this);
+    panelToolsView = new UiPanelToolsView(auiManager.GetManagedWindow(), *this);
 
-    panelParams = new UiPanelParams(panel);
-    sizerViews->Add(panelParams, wxSizerFlags().Border());
+    auiManager.AddPane(panelInput, wxAuiPaneInfo().MinSize(832, 832).Caption("RTX Ray Tracer View").Name(NAME_VIEW_INPUT.data())
+        .CloseButton(false).MaximizeButton(true).Left());
+    auiManager.AddPane(panelOutput, wxAuiPaneInfo().MinSize(832, 832).Caption("Gaussian Splats View").Name(NAME_VIEW_OUTPUT.data())
+        .CloseButton(false).MaximizeButton(true).Center());
 
-    panelTools = new UiPanelTools(panel);
-    sizer->Add(panelTools, wxSizerFlags().Border());
+    auiManager.AddPane(panelParamsLr, wxAuiPaneInfo().MinSize(panelParamsLr->GetMinSize()).Caption("Learning Rates").Name(NAME_PARAMS_LR.data())
+            .CloseButton(false).MaximizeButton(true).Right());
+    auiManager.AddPane(panelParamsDensify, wxAuiPaneInfo().MinSize(panelParamsDensify->GetMinSize()).Caption("Densify Parameters").Name(NAME_PARAMS_DENSIFY.data())
+            .CloseButton(false).MaximizeButton(true).Right());
+    auiManager.AddPane(panelParamsOther, wxAuiPaneInfo().MinSize(panelParamsOther->GetMinSize()).Caption("Other Parameters").Name(NAME_PARAMS_OTHER.data())
+            .CloseButton(false).MaximizeButton(true).Right());
 
-    sizer->Fit(this);
+    auiManager.AddPane(panelToolsInput, wxAuiPaneInfo().MinSize(panelToolsInput->GetMinSize()).Caption("1. Input Model Data").Name(NAME_TOOLS_INPUT.data())
+        .CloseButton(false).MaximizeButton(true).Bottom());
+    auiManager.AddPane(panelToolsTruth, wxAuiPaneInfo().MinSize(panelToolsTruth->GetMinSize()).Caption("2. Build Truth Data").Name(NAME_TOOLS_TRUTH.data())
+        .CloseButton(false).MaximizeButton(true).Bottom());
+    auiManager.AddPane(panelToolsTrain, wxAuiPaneInfo().MinSize(panelToolsTrain->GetMinSize()).Caption("3. Train Splats").Name(NAME_TOOLS_TRAIN.data())
+        .CloseButton(false).MaximizeButton(true).Bottom());
+    auiManager.AddPane(panelToolsView, wxAuiPaneInfo().MinSize(panelToolsView->GetMinSize()).Caption("4. Visualize Splats").Name(NAME_TOOLS_VIEW.data())
+        .CloseButton(false).MaximizeButton(true).Bottom());
+
+    auiManager.Update();
+
+    auiManager.GetPane(panelInput).MinSize(0, 0);
+    auiManager.GetPane(panelOutput).MinSize(0, 0);
+
+    auiManager.Update();
+
+    auiPersDefault = auiManager.SavePerspective();
 
     refreshProject();
 }
 
 UiFrame::~UiFrame() {
+    auiManager.UnInit();
+
     delete project;
 
     delete rtx;
@@ -251,14 +285,14 @@ void UiFrame::update() {
 
             if(capture) { // Randomize camera sphere rotations & collect new truth data
                 wxCommandEvent eventFake = wxCommandEvent(wxEVT_NULL, 0);
-                panelTools->panelTruth->onButtonRandomRotate(eventFake);
-                panelTools->panelTruth->onButtonCapture(eventFake);
+                panelToolsTruth->onButtonRandomRotate(eventFake);
+                panelToolsTruth->onButtonCapture(eventFake);
             }
 
             trainer->train(*project, densify);
 
             panelOutput->refreshText();
-            panelTools->panelTrain->refreshText();
+            panelToolsTrain->refreshText();
         }
     }
 }
@@ -271,13 +305,24 @@ void UiFrame::refreshProject() {
     // TODO stop auto training
     // TODO stop auto training in nested classes
 
+    auiManager.LoadPerspective(project->perspective.empty() ? auiPersDefault : project->perspective);
+
     panelInput->refreshProject();
     panelOutput->refreshProject();
-    panelParams->refreshProject();
-    panelTools->refreshProject();
+
+    panelParamsLr->refreshProject();
+    panelParamsDensify->refreshProject();
+    panelParamsOther->refreshProject();
+
+    panelToolsInput->refreshProject();
+    panelToolsTruth->refreshProject();
+    panelToolsTrain->refreshProject();
+    panelToolsView->refreshProject();
 }
 
-void UiFrame::saveSettings(const std::string& path) const {
+void UiFrame::saveSettings(const std::string& path) {
+    project->perspective = auiManager.SavePerspective();
+
     nlohmann::json j;
     nlohmann::to_json(j, *project);
 
@@ -285,8 +330,8 @@ void UiFrame::saveSettings(const std::string& path) const {
     file << j;
 }
 
-void UiFrame::saveSplats(const std::string& path) const {
-    wxProgressDialog dialog("Saving Gaussian Splats", "Writing splats to \"" + path + "\"...", trainer->model->count + 1000, panel, wxPD_AUTO_HIDE);
+void UiFrame::saveSplats(const std::string& path) {
+    wxProgressDialog dialog("Saving Gaussian Splats", "Writing splats to \"" + path + "\"...", trainer->model->count + 1000, auiManager.GetManagedWindow(), wxPD_AUTO_HIDE);
 
     // Initializing the model takes time, so count this as (the equivalent of) 1,000 line reads
     ModelSplatsHost model(*trainer->model);
@@ -336,7 +381,7 @@ void UiFrame::loadSplats(const std::string& path) {
     std::ifstream fileLines(path);
     int linesCount = (int)std::count(std::istreambuf_iterator<char>(fileLines), std::istreambuf_iterator<char>(), '\n');
 
-    wxProgressDialog dialog("Loading Gaussian Splats", "Loading splats from \"" + path + "\"...", linesCount + 2000, panel, wxPD_AUTO_HIDE);
+    wxProgressDialog dialog("Loading Gaussian Splats", "Loading splats from \"" + path + "\"...", linesCount + 2000, auiManager.GetManagedWindow(), wxPD_AUTO_HIDE);
 
     int progress = 0;
 
@@ -479,6 +524,8 @@ void UiFrame::onMenuButton(wxCommandEvent& event) {
         loadSettings(dialog.GetPath().ToStdString());
         refreshProject();
 
+    } else if (event.GetId() == VIEW_PERS_DEFAULT) {
+        auiManager.LoadPerspective(auiPersDefault);
     } else if (event.GetId() == ABOUT_ABOUT) {
         UiDialogAbout dialog(this);
     }

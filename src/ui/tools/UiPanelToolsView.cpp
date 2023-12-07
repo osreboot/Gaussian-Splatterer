@@ -5,21 +5,16 @@
 
 #include "rtx/RtxHost.h"
 #include "ui/UiFrame.h"
-#include "ui/UiPanelTools.h"
 #include "Camera.h"
 #include "Project.h"
 #include "Trainer.cuh"
 
-UiFrame& UiPanelToolsView::getFrame() const {
-    return *dynamic_cast<UiFrame*>(GetParent()->GetParent()->GetParent());
-}
-
 Project& UiPanelToolsView::getProject() const {
-    return *getFrame().project;
+    return *frame.project;
 }
 
-UiPanelToolsView::UiPanelToolsView(wxWindow* parent) : wxPanel(parent) {
-    sizer = new wxStaticBoxSizer(wxHORIZONTAL, this, "4. Visualize Splats");
+UiPanelToolsView::UiPanelToolsView(wxWindow* parent, UiFrame& frame) : wxPanel(parent), frame(frame) {
+    wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
 
 
 
@@ -236,8 +231,8 @@ void UiPanelToolsView::onButtonRenderRtx(wxCommandEvent& event) {
     uint32_t* frameBuffer;
     cudaMallocManaged(&frameBuffer, getProject().renderResX * getProject().renderResY * sizeof(uint32_t));
 
-    getFrame().rtx->render(frameBuffer, {getProject().renderResX, getProject().renderResY},
-                           Camera::getPreviewCamera(getProject()), {0.0f, 0.0f, 0.0f}, getProject().rtSamples, {});
+    frame.rtx->render(frameBuffer, {getProject().renderResX, getProject().renderResY},
+                      Camera::getPreviewCamera(getProject()), {0.0f, 0.0f, 0.0f}, getProject().rtSamples, {});
 
     stbi_flip_vertically_on_write(true);
     stbi_write_png(dialog.GetPath().ToStdString().c_str(), getProject().renderResX, getProject().renderResY, 4,
@@ -253,8 +248,8 @@ void UiPanelToolsView::onButtonRenderSplats(wxCommandEvent& event) {
     uint32_t* frameBuffer;
     cudaMallocManaged(&frameBuffer, getProject().renderResX * getProject().renderResY * sizeof(uint32_t));
 
-    getFrame().trainer->render(frameBuffer, getProject().renderResX, getProject().renderResY,
-                               getProject().previewSplatScale, Camera::getPreviewCamera(getProject()));
+    frame.trainer->render(frameBuffer, getProject().renderResX, getProject().renderResY,
+                          getProject().previewSplatScale, Camera::getPreviewCamera(getProject()));
 
     stbi_flip_vertically_on_write(true);
     stbi_write_png(dialog.GetPath().ToStdString().c_str(), getProject().renderResX, getProject().renderResY, 4,

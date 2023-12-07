@@ -8,21 +8,15 @@
 
 using namespace std;
 
-UiFrame& UiPanelViewOutput::getFrame() const {
-    return *dynamic_cast<UiFrame*>(GetParent()->GetParent());;
-}
-
 Project& UiPanelViewOutput::getProject() const {
-    return *getFrame().project;
+    return *frame.project;
 }
 
-UiPanelViewOutput::UiPanelViewOutput(wxWindow *parent, wxGLContext* context) : wxPanel(parent), context(context) {
+UiPanelViewOutput::UiPanelViewOutput(wxWindow *parent, UiFrame& frame, wxGLContext* context) : wxPanel(parent),
+    frame(frame), context(context) {
     sizer = new wxBoxSizer(wxVERTICAL);
 
-    sizer->Add(new wxStaticText(this, wxID_ANY, "Gaussian Splats View"));
-
     canvas = new wxGLCanvas(this);
-    canvas->SetMinSize({256, 256});
     canvas->SetCurrent(*context);
     sizer->Add(canvas, wxSizerFlags().Shaped().Expand());
 
@@ -50,15 +44,15 @@ void UiPanelViewOutput::refreshProject() {
 }
 
 void UiPanelViewOutput::refreshText() {
-    textSplats->SetLabel(std::to_string(getFrame().trainer->model->count) + " / " +
-        std::to_string(getFrame().trainer->model->capacity) + " total splats");
+    textSplats->SetLabel(std::to_string(frame.trainer->model->count) + " / " +
+        std::to_string(frame.trainer->model->capacity) + " total splats");
     textIterations->SetLabel(std::to_string(getProject().iterations) + " training iterations");
 }
 
 void UiPanelViewOutput::render() {
     canvas->SetCurrent(*context);
 
-    getFrame().trainer->render(renderer->frameBuffer, RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y,
+    frame.trainer->render(renderer->frameBuffer, RENDER_RESOLUTION_X, RENDER_RESOLUTION_Y,
                                getProject().previewSplatScale, Camera::getPreviewCamera(getProject()));
 
     renderer->render(canvas->GetSize().x, canvas->GetSize().y);

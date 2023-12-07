@@ -6,6 +6,8 @@
 class Project {
 
 public:
+    std::string perspective;
+
     std::string pathModel;
     std::string pathTextureDiffuse;
 
@@ -60,6 +62,7 @@ public:
     int renderResY = 2048;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Project,
+                                                perspective,
                                                 pathModel, pathTextureDiffuse,
                                                 sphere1, sphere2, rtSamples,
                                                 lrLocation, lrSh, lrScale, lrOpacity, lrRotation,

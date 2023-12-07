@@ -9,10 +9,8 @@
 class UiPanelParamsOther : public wxPanel{
 
 private:
-    UiFrame& getFrame() const;
+    UiFrame& frame;
     Project& getProject() const;
-
-    wxStaticBoxSizer* sizer;
 
     wxSpinCtrlDouble* spinParamSizeMax;
 
@@ -21,7 +19,7 @@ private:
     };
 
 public:
-    UiPanelParamsOther(wxWindow* parent);
+    UiPanelParamsOther(wxWindow* parent, UiFrame& frame);
 
     void refreshProject();
 

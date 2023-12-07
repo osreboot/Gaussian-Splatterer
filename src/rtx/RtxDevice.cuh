@@ -10,15 +10,8 @@
 #define TEXTURE_COUNT 1
 #define TEXTURE_DIFFUSE 0
 
-// Material properties
-struct Material {
-    bool fullbright; // Is it a light source?
-    float reflectivity; // Probability to reflect instead of absorb
-    float diffuse; // Scattering magnitude
-    owl::vec3f color; // Surface color
-    float gloss = 0.0f;
-    int textureDiffuse = -1;
-};
+// TODO add support for roughness textures and replace this
+#define MATERIAL_REFLECTIVITY 0.0f
 
 // Raw geometry data
 struct WorldGeometry {
@@ -51,6 +44,6 @@ struct PerRayData {
     owl::vec3f hitOrigin; // Collision location
     owl::vec3f bounceDirection; // New ray direction (post-collision)
     owl::vec3f color; // New ray color (post-collision)
-    bool splatTouchesCamera = false;
-    bool reflected = false;
+    bool splatTouchesCamera = false; // Does the ray intersect with a splat camera indicator orb?
+    bool reflected = false; // Has the ray been reflected off a surface?
 };

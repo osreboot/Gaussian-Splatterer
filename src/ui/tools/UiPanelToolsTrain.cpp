@@ -2,20 +2,15 @@
 
 #include <wx/progdlg.h>
 
-#include "ui/UiPanelTools.h"
 #include "ui/UiPanelViewOutput.h"
 #include "Trainer.cuh"
 
-UiFrame& UiPanelToolsTrain::getFrame() const {
-    return *dynamic_cast<UiFrame*>(GetParent()->GetParent()->GetParent());
-}
-
 Project& UiPanelToolsTrain::getProject() const {
-    return *getFrame().project;
+    return *frame.project;
 }
 
-UiPanelToolsTrain::UiPanelToolsTrain(wxWindow* parent) : wxPanel(parent) {
-    sizer = new wxStaticBoxSizer(wxHORIZONTAL, this, "3. Train Splats");
+UiPanelToolsTrain::UiPanelToolsTrain(wxWindow* parent, UiFrame& frame) : wxPanel(parent), frame(frame) {
+    wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
 
 
 
@@ -97,6 +92,7 @@ void UiPanelToolsTrain::refreshProject() {
     spinIntervalCapture->SetValue(getProject().intervalCapture);
     spinIntervalDensify->SetValue(getProject().intervalDensify);
     refreshText();
+    Disable();
 }
 
 void UiPanelToolsTrain::refreshText() {
@@ -111,7 +107,7 @@ void UiPanelToolsTrain::refreshText() {
 }
 
 void UiPanelToolsTrain::onButtonAutoStart(wxCommandEvent& event) {
-    getFrame().autoTraining = true;
+    frame.autoTraining = true;
     buttonAutoStart->Disable();
     buttonAutoStop->Enable();
 
@@ -126,7 +122,7 @@ void UiPanelToolsTrain::onButtonAutoStart(wxCommandEvent& event) {
 }
 
 void UiPanelToolsTrain::onButtonAutoStop(wxCommandEvent& event) {
-    getFrame().autoTraining = false;
+    frame.autoTraining = false;
     buttonAutoStart->Enable();
     buttonAutoStop->Disable();
 
@@ -165,14 +161,14 @@ void UiPanelToolsTrain::onButtonManual(wxCommandEvent& event) {
 
     if (count > 1) {
         wxProgressDialog dialog("Training Gaussian Splats", "Training for " + std::to_string(count) + " iterations...",
-                                count, getFrame().panelOutput, wxPD_AUTO_HIDE | wxPD_CAN_ABORT);
+                                count, frame.panelOutput, wxPD_AUTO_HIDE | wxPD_CAN_ABORT);
         for (int i = 0; i < count; i++) {
-            getFrame().trainer->train(getProject(), densify);
+            frame.trainer->train(getProject(), densify);
             if(!dialog.Update(i + 1)) break;
         }
-    } else getFrame().trainer->train(getProject(), densify);
+    } else frame.trainer->train(getProject(), densify);
 
-    getFrame().panelOutput->refreshText();
+    frame.panelOutput->refreshText();
     refreshText();
 }
 

@@ -9,10 +9,8 @@
 class UiPanelParamsDensify : public wxPanel{
 
 private:
-    UiFrame& getFrame() const;
+    UiFrame& frame;
     Project& getProject() const;
-
-    wxStaticBoxSizer* sizer;
 
     wxSpinCtrlDouble* spinParamCullOpacity;
     wxSpinCtrlDouble* spinParamCullSize;
@@ -35,7 +33,7 @@ private:
     };
 
 public:
-    UiPanelParamsDensify(wxWindow* parent);
+    UiPanelParamsDensify(wxWindow* parent, UiFrame& frame);
 
     void refreshProject();
 

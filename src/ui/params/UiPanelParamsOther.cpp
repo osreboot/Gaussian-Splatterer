@@ -1,15 +1,11 @@
 #include "UiPanelParamsOther.h"
 
-UiFrame& UiPanelParamsOther::getFrame() const {
-    return *dynamic_cast<UiFrame*>(GetParent()->GetParent()->GetParent());
-}
-
 Project& UiPanelParamsOther::getProject() const {
-    return *getFrame().project;
+    return *frame.project;
 }
 
-UiPanelParamsOther::UiPanelParamsOther(wxWindow* parent) : wxPanel(parent) {
-    sizer = new wxStaticBoxSizer(wxVERTICAL, this, "Other Parameters");
+UiPanelParamsOther::UiPanelParamsOther(wxWindow* parent, UiFrame& frame) : wxPanel(parent), frame(frame) {
+    wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 
     sizer->Add(new wxStaticText(this, wxID_ANY, "Max Splat Size"), wxSizerFlags().Border(wxUP | wxLEFT | wxRIGHT));
     spinParamSizeMax = new wxSpinCtrlDouble(this, P_SIZE_MAX);

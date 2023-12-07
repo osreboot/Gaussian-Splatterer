@@ -1,15 +1,11 @@
 #include "UiPanelParamsLr.h"
 
-UiFrame& UiPanelParamsLr::getFrame() const {
-    return *dynamic_cast<UiFrame*>(GetParent()->GetParent()->GetParent());
-}
-
 Project& UiPanelParamsLr::getProject() const {
-    return *getFrame().project;
+    return *frame.project;
 }
 
-UiPanelParamsLr::UiPanelParamsLr(wxWindow* parent) : wxPanel(parent) {
-    sizer = new wxStaticBoxSizer(wxVERTICAL, this, "Learning Rates");
+UiPanelParamsLr::UiPanelParamsLr(wxWindow* parent, UiFrame& frame) : wxPanel(parent), frame(frame) {
+    wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 
     sizer->Add(new wxStaticText(this, wxID_ANY, "Location"), wxSizerFlags().Border(wxUP | wxLEFT | wxRIGHT));
     spinLrLocation = new wxSpinCtrlDouble(this, LR_LOCATION);
