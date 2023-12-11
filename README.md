@@ -55,7 +55,7 @@ Parameters that I've found to work well (omitted values are default):
 | Learning Rate: Color | 0.2 |
 | Learning Rate: Opacity | 0.2 |
 
-Rule of thumb: if splats are unstable (location-wise, scale-wise, or color-wise) wait to change parameters again until the model converges somewhat and becomes stable again. I like to slowly increase color/opacity learning rates throughout training (as this results in the best low-level detail), however increasing these too quickly will cause severe instability (and even possibly model destruction). Adding more cameras or changing the distance/FOV will likely dramatically increase the model error, so expect to wait after chaning these values as well.
+Rule of thumb: if splats are unstable (location-wise, scale-wise, or color-wise) wait to change parameters again until the model converges somewhat and returns to a stable state. I like to slowly increase color/opacity learning rates throughout training (as this results in the best low-level detail), however increasing these too quickly will cause severe instability (and even possibly model destruction). Adding more cameras or changing the distance/FOV will likely dramatically increase the model error, so expect to wait after chaning these values as well.
 
 # Instructions (For Maintainers/Experimentalists)
 
